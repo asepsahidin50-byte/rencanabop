@@ -1030,6 +1030,7 @@
     const ADMIN_UTAMA_PASS = "admin2027";
 
     // PASTE FIREBASE CONFIG ANDA DI SINI
+    const firebaseConfig = {
 const firebaseConfig = {
   apiKey: "AIzaSyChpYhdPauvM6TDYdJsy9psFjEOHUxBGkw",
   authDomain: "bop2027-1c342.firebaseapp.com",
@@ -1057,7 +1058,6 @@ const firebaseConfig = {
       onSnapshot,
       query,
       where,
-      orderBy,
       serverTimestamp
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -1132,6 +1132,18 @@ const firebaseConfig = {
     // =========================================================================
     // INISIALISASI MODE (PREVIEW VS PRODUKSI FIRESTORE)
     // =========================================================================
+    async function ensureFirebaseSession() {
+      if (!auth) return;
+      if (!auth.currentUser) {
+        try {
+          await signInAnonymously(auth);
+        } catch (e) {
+          // Abaikan jika Anonymous Auth belum diaktifkan di Firebase Console;
+          // Firestore tetap dapat berjalan selama Rules diizinkan.
+        }
+      }
+    }
+
     async function initApp() {
       buildModalMonthInputs();
 
@@ -1216,13 +1228,12 @@ const firebaseConfig = {
           auth = getAuth(fbApp);
           db = getFirestore(fbApp);
 
-          // Autentikasi sesi dasar agar Firestore Rules terpenuhi
-          await signInAnonymously(auth);
+          await ensureFirebaseSession();
           attachFirestoreBrandingListener();
           refreshAllUI();
         } catch (err) {
           refreshAllUI();
-          showToast('Gagal menginisialisasi Firebase (Pastikan Anonymous Auth aktif): ' + err.message, 'error');
+          showToast('Gagal menginisialisasi Firebase: ' + err.message, 'error');
         }
       }
     }
@@ -1294,19 +1305,21 @@ const firebaseConfig = {
         showToast('Gagal memuat pengaturan sekolah: ' + err.message, 'error');
       });
 
-      // 2. Kategori Anggaran Sekolah
-      const catQuery = query(collection(db, 'sekolah_bop', schoolId, 'kategori'), orderBy('urutan', 'asc'));
-      unsubCategories = onSnapshot(catQuery, (snapshot) => {
-        appState.categories = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      // 2. Kategori Anggaran Sekolah (diurutkan di memori klien agar bebas kendala indeks)
+      unsubCategories = onSnapshot(collection(db, 'sekolah_bop', schoolId, 'kategori'), (snapshot) => {
+        appState.categories = snapshot.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => (Number(a.urutan) || 0) - (Number(b.urutan) || 0));
         refreshAllUI();
       }, (err) => {
         showToast('Gagal memuat kategori sekolah: ' + err.message, 'error');
       });
 
-      // 3. Item Anggaran 12 Bulan Sekolah
-      const itemQuery = query(collection(db, 'sekolah_bop', schoolId, 'item_anggaran'), orderBy('created_at', 'asc'));
-      unsubItems = onSnapshot(itemQuery, (snapshot) => {
-        appState.items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+      // 3. Item Anggaran 12 Bulan Sekolah (diurutkan di memori klien agar bebas kendala indeks)
+      unsubItems = onSnapshot(collection(db, 'sekolah_bop', schoolId, 'item_anggaran'), (snapshot) => {
+        appState.items = snapshot.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => (a.created_at?.seconds || 0) - (b.created_at?.seconds || 0));
         refreshAllUI();
       }, (err) => {
         showToast('Gagal memuat rincian anggaran sekolah: ' + err.message, 'error');
@@ -1942,6 +1955,7 @@ const firebaseConfig = {
 
       // Mode Produksi Firestore: Cek apakah username sudah ada
       try {
+        await ensureFirebaseSession();
         const qCheck = query(collection(db, 'akun_sekolah'), where('username', '==', username));
         const snapCheck = await getDocs(qCheck);
         if (!snapCheck.empty) {
@@ -1965,7 +1979,87 @@ const firebaseConfig = {
         window.switchAuthTab('login');
         showToast(`Pendaftaran ${namaSekolah} berhasil! Silakan tunggu konfirmasi Admin.`, 'success');
       } catch (err) {
-        showToast('Gagal mendaftar akun: ' + err.message, 'error');
+        showToast('Gagal mendaftar akun (Pastikan Firestore Rules sudah di-Publish): ' + err.message, 'error');
+      }
+    };
+
+    window.handleAdminLogin = async function(e) {
+      e.preventDefault();
+      const inputUser = document.getElementById('login-email').value.trim();
+      const inputPass = document.getElementById('login-password').value;
+
+      // 1. Cek Login Admin Utama (Khusus Konfirmasi Pendaftaran & Ubah User/Password)
+      if (inputUser.toLowerCase() === ADMIN_UTAMA_USER.toLowerCase() && inputPass === ADMIN_UTAMA_PASS) {
+        appState.role = 'SUPER_ADMIN';
+        appState.currentAccount = null;
+
+        if (!IS_PREVIEW) {
+          if (!db) {
+            showToast('Koneksi database Firebase belum siap. Periksa firebaseConfig Anda.', 'error');
+            return;
+          }
+          await ensureFirebaseSession();
+          attachFirestoreAccountsListener();
+        }
+        showAuthAnimationPopup('login', 'Berhasil Masuk Admin Utama', 'Akses konfirmasi & kelola akun aktif.');
+        refreshAllUI();
+        return;
+      }
+
+      // 2. Cek Login Akun Sekolah
+      if (IS_PREVIEW) {
+        const found = appState.accounts.find(a => a.username.toLowerCase() === inputUser.toLowerCase() && a.password === inputPass);
+        if (!found) {
+          showToast('Username atau Password salah.', 'error');
+          return;
+        }
+        if (found.status !== 'approved') {
+          showToast('Akun sekolah Anda masih MENUNGGU KONFIRMASI Admin.', 'error');
+          return;
+        }
+        appState.role = 'SCHOOL_USER';
+        appState.currentAccount = found;
+        loadPreviewSchoolScope(found.id);
+        showAuthAnimationPopup('login', 'Berhasil Masuk Akun!', `Selamat datang, ${found.nama_sekolah}`);
+        refreshAllUI();
+        return;
+      }
+
+      if (!db) {
+        showToast('Koneksi database Firebase belum siap. Periksa firebaseConfig Anda.', 'error');
+        return;
+      }
+
+      // Mode Produksi Firestore: Validasi terhadap koleksi akun_sekolah
+      try {
+        await ensureFirebaseSession();
+        const qUser = query(collection(db, 'akun_sekolah'), where('username', '==', inputUser));
+        const snapUser = await getDocs(qUser);
+        if (snapUser.empty) {
+          showToast('Username tidak ditemukan.', 'error');
+          return;
+        }
+
+        const docSnap = snapUser.docs[0];
+        const accData = { id: docSnap.id, ...docSnap.data() };
+
+        if (accData.password !== inputPass) {
+          showToast('Password yang Anda masukkan salah.', 'error');
+          return;
+        }
+
+        if (accData.status !== 'approved') {
+          showToast('Akun sekolah Anda masih MENUNGGU KONFIRMASI Admin Utama.', 'error');
+          return;
+        }
+
+        appState.role = 'SCHOOL_USER';
+        appState.currentAccount = accData;
+        attachSchoolFirestoreListeners(accData);
+        showAuthAnimationPopup('login', 'Berhasil Masuk Akun!', `Database mandiri ${accData.nama_sekolah} siap digunakan.`);
+        refreshAllUI();
+      } catch (err) {
+        showToast('Gagal memverifikasi akun (Pastikan Firestore Rules sudah di-Publish): ' + err.message, 'error');
       }
     };
 
