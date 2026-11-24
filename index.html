@@ -56,6 +56,7 @@
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border-right: 1px solid rgba(226, 232, 240, 0.95);
+      z-index: 100001 !important;
     }
 
     .glass-bottom-nav {
@@ -64,6 +65,11 @@
       -webkit-backdrop-filter: blur(16px);
       border-top: 1px solid rgba(226, 232, 240, 0.95);
       box-shadow: 0 -8px 24px -6px rgba(15, 23, 42, 0.08);
+      z-index: 100001 !important;
+    }
+
+    button svg, button i[data-lucide] {
+      pointer-events: none;
     }
 
     /* Responsif Desktop vs Mobile sesuai Mandat */
@@ -137,17 +143,17 @@
         <!-- Menu Navigasi (Hanya 2 Tampilan Utama: Dashboard & Login/Panel Admin) -->
         <nav class="mt-6 space-y-2">
           <p class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Menu Utama</p>
-          <button onclick="switchView('dashboard')" id="nav-desk-dashboard" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition-all bg-teal-600 text-white shadow-sm">
+          <button type="button" onclick="window.switchView('dashboard')" id="nav-desk-dashboard" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition-all bg-teal-600 text-white shadow-sm cursor-pointer">
             <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
             <span>Dashboard Perencanaan</span>
           </button>
 
-          <button onclick="switchView('admin')" id="nav-desk-admin" class="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all text-slate-600 hover:bg-slate-100">
-            <span class="flex items-center gap-3">
+          <button type="button" onclick="window.switchView('admin')" id="nav-desk-admin" class="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all text-slate-600 hover:bg-slate-100 cursor-pointer">
+            <span class="flex items-center gap-3 pointer-events-none">
               <i data-lucide="shield-check" class="w-4 h-4"></i>
               <span id="nav-desk-admin-label">Login Admin</span>
             </span>
-            <span id="admin-status-dot" class="w-2 h-2 rounded-full bg-slate-300"></span>
+            <span id="admin-status-dot" class="w-2 h-2 rounded-full bg-slate-300 pointer-events-none"></span>
           </button>
         </nav>
       </div>
@@ -165,12 +171,12 @@
 
     <!-- Mobile Bottom Navigation Bar -->
     <nav id="mobile-bottom-nav" class="glass-bottom-nav fixed bottom-3 left-3 right-3 z-40 rounded-2xl px-3 py-2 justify-around items-center no-print">
-      <button onclick="switchView('dashboard')" id="nav-mob-dashboard" class="flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl text-teal-600 font-bold text-xs transition-all">
+      <button type="button" onclick="window.switchView('dashboard')" id="nav-mob-dashboard" class="flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl text-teal-600 font-bold text-xs transition-all cursor-pointer">
         <i data-lucide="layout-dashboard" class="w-5 h-5 mb-0.5"></i>
         <span>Dashboard BOP</span>
       </button>
       <div class="w-px h-7 bg-slate-200 mx-1"></div>
-      <button onclick="switchView('admin')" id="nav-mob-admin" class="flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-500 font-semibold text-xs transition-all">
+      <button type="button" onclick="window.switchView('admin')" id="nav-mob-admin" class="flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-500 font-semibold text-xs transition-all cursor-pointer">
         <i data-lucide="shield-check" class="w-5 h-5 mb-0.5"></i>
         <span id="nav-mob-admin-label">Login Admin</span>
       </button>
@@ -719,6 +725,68 @@
     </div>
   </div>
 
+  <!-- Skrip Navigasi Instan (Berjalan langsung tanpa menunggu modul eksternal) -->
+  <script>
+    window.switchView = function(viewName) {
+      var viewDash = document.getElementById('view-dashboard');
+      var viewAdmin = document.getElementById('view-admin');
+      if (!viewDash || !viewAdmin) return;
+
+      var deskDash = document.getElementById('nav-desk-dashboard');
+      var deskAdmin = document.getElementById('nav-desk-admin');
+      var mobDash = document.getElementById('nav-mob-dashboard');
+      var mobAdmin = document.getElementById('nav-mob-admin');
+
+      if (viewName === 'admin') {
+        viewDash.classList.add('hidden');
+        viewAdmin.classList.remove('hidden');
+
+        if (deskAdmin) deskAdmin.className = 'w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all bg-teal-600 text-white shadow-sm cursor-pointer';
+        if (deskDash) deskDash.className = 'w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition-all text-slate-600 hover:bg-slate-100 cursor-pointer';
+
+        if (mobAdmin) mobAdmin.className = 'flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl text-teal-600 font-bold text-xs transition-all cursor-pointer';
+        if (mobDash) mobDash.className = 'flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-500 font-semibold text-xs transition-all cursor-pointer';
+      } else {
+        viewAdmin.classList.add('hidden');
+        viewDash.classList.remove('hidden');
+
+        if (deskDash) deskDash.className = 'w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition-all bg-teal-600 text-white shadow-sm cursor-pointer';
+        if (deskAdmin) deskAdmin.className = 'w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all text-slate-600 hover:bg-slate-100 cursor-pointer';
+
+        if (mobDash) mobDash.className = 'flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl text-teal-600 font-bold text-xs transition-all cursor-pointer';
+        if (mobAdmin) mobAdmin.className = 'flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-500 font-semibold text-xs transition-all cursor-pointer';
+      }
+
+      var root = document.getElementById('bop-app-root');
+      if (root) root.scrollTo({ top: 0, behavior: 'smooth' });
+      if (window.lucide) window.lucide.createIcons();
+    };
+
+    window.switchAuthTab = function(tab) {
+      var tabLogin = document.getElementById('auth-tab-login');
+      var tabReg = document.getElementById('auth-tab-register');
+      var wrapLogin = document.getElementById('auth-form-login-wrapper');
+      var wrapReg = document.getElementById('auth-form-register-wrapper');
+      if (!tabLogin || !tabReg || !wrapLogin || !wrapReg) return;
+
+      if (tab === 'register') {
+        tabReg.className = 'py-2 rounded-lg text-xs font-bold bg-white text-emerald-700 shadow-sm transition-all';
+        tabLogin.className = 'py-2 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-700 transition-all';
+        wrapReg.classList.remove('hidden');
+        wrapLogin.classList.add('hidden');
+      } else {
+        tabLogin.className = 'py-2 rounded-lg text-xs font-bold bg-white text-teal-700 shadow-sm transition-all';
+        tabReg.className = 'py-2 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-700 transition-all';
+        wrapLogin.classList.remove('hidden');
+        wrapReg.classList.add('hidden');
+      }
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+      if (window.lucide) window.lucide.createIcons();
+    });
+  </script>
+
   <script type="module">
     // =========================================================================
     // KONFIGURASI APLIKASI (SAKLAR MODE & FIREBASE CONFIG)
@@ -774,41 +842,6 @@ const firebaseConfig = {
       const blob = new Blob([swCode], { type: 'application/javascript' });
       navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
     }
-
-    // =========================================================================
-    // NAVIGASI UTAMA (DASHBOARD <-> LOGIN / PANEL ADMIN)
-    // =========================================================================
-    window.switchView = function(viewName) {
-      const viewDash = document.getElementById('view-dashboard');
-      const viewAdmin = document.getElementById('view-admin');
-
-      const deskDash = document.getElementById('nav-desk-dashboard');
-      const deskAdmin = document.getElementById('nav-desk-admin');
-      const mobDash = document.getElementById('nav-mob-dashboard');
-      const mobAdmin = document.getElementById('nav-mob-admin');
-
-      if (viewName === 'admin') {
-        viewDash.classList.add('hidden');
-        viewAdmin.classList.remove('hidden');
-
-        deskAdmin.className = 'w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all bg-teal-600 text-white shadow-sm';
-        deskDash.className = 'w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition-all text-slate-600 hover:bg-slate-100';
-
-        mobAdmin.className = 'flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl text-teal-600 font-bold text-xs transition-all';
-        mobDash.className = 'flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-500 font-semibold text-xs transition-all';
-      } else {
-        viewAdmin.classList.add('hidden');
-        viewDash.classList.remove('hidden');
-
-        deskDash.className = 'w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition-all bg-teal-600 text-white shadow-sm';
-        deskAdmin.className = 'w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all text-slate-600 hover:bg-slate-100';
-
-        mobDash.className = 'flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl text-teal-600 font-bold text-xs transition-all';
-        mobAdmin.className = 'flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-500 font-semibold text-xs transition-all';
-      }
-
-      if (window.lucide) lucide.createIcons();
-    };
 
     // =========================================================================
     // KONSTANTA & STATE GLOBAL
@@ -906,6 +939,12 @@ const firebaseConfig = {
       } else {
         // MODE PRODUKSI MURNI: Zero Dummy Data, Terhubung langsung ke Firebase
         try {
+          if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "API_KEY_ANDA") {
+            showToast('Perhatian: firebaseConfig belum diisi! Silakan isi konfigurasi Firebase Anda.', 'error');
+            refreshAllUI();
+            return;
+          }
+
           const fbApp = initializeApp(firebaseConfig);
           auth = getAuth(fbApp);
           db = getFirestore(fbApp);
@@ -928,6 +967,8 @@ const firebaseConfig = {
               appState.settings = { ...appState.settings, ...snap.data() };
             }
             refreshAllUI();
+          }, (err) => {
+            console.warn('Firestore pengaturan_bop:', err.message);
           });
 
           // Real-time listener Kategori BOP
@@ -935,6 +976,8 @@ const firebaseConfig = {
           onSnapshot(qCat, (snapshot) => {
             appState.categories = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
             refreshAllUI();
+          }, (err) => {
+            console.warn('Firestore kategori_bop:', err.message);
           });
 
           // Real-time listener Item Anggaran 2027
@@ -942,8 +985,13 @@ const firebaseConfig = {
           onSnapshot(qItems, (snapshot) => {
             appState.items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
             refreshAllUI();
+          }, (err) => {
+            console.warn('Firestore item_anggaran_2027:', err.message);
           });
+
+          refreshAllUI();
         } catch (err) {
+          refreshAllUI();
           showToast('Gagal menginisialisasi Firebase. Periksa firebaseConfig.', 'error');
         }
       }
@@ -1523,25 +1571,6 @@ const firebaseConfig = {
     // =========================================================================
     // AUTENTIKASI & DAFTAR AKUN SEKOLAH (PREVIEW VS FIREBASE AUTH/FIRESTORE)
     // =========================================================================
-    window.switchAuthTab = function(tab) {
-      const tabLogin = document.getElementById('auth-tab-login');
-      const tabReg = document.getElementById('auth-tab-register');
-      const wrapLogin = document.getElementById('auth-form-login-wrapper');
-      const wrapReg = document.getElementById('auth-form-register-wrapper');
-
-      if (tab === 'register') {
-        tabReg.className = 'py-2 rounded-lg text-xs font-bold bg-white text-emerald-700 shadow-sm transition-all';
-        tabLogin.className = 'py-2 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-700 transition-all';
-        wrapReg.classList.remove('hidden');
-        wrapLogin.classList.add('hidden');
-      } else {
-        tabLogin.className = 'py-2 rounded-lg text-xs font-bold bg-white text-teal-700 shadow-sm transition-all';
-        tabReg.className = 'py-2 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-700 transition-all';
-        wrapLogin.classList.remove('hidden');
-        wrapReg.classList.add('hidden');
-      }
-    };
-
     // Helper: Normalisasi input user (jika pengguna mengetik username tanpa @, otomatis dikonversi ke format email Firebase Auth)
     function normalizeAuthEmail(userInput) {
       const clean = userInput.trim().toLowerCase();
