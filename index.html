@@ -1,1 +1,2004 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Perencanaan BOP PAUD 2027 — Siap Input ARKAS</title>
 
+  <!-- PWA Manifest Data URI -->
+  <link rel="manifest" href='data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Perencanaan%20BOP%20PAUD%202027%22%2C%22short_name%22%3A%22BOP%20PAUD%202027%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f8fafc%22%2C%22theme_color%22%3A%22%230f766e%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%2520xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%2520viewBox%3D%270%200%20100%20100%27%253E%253Crect%2520width%3D%27100%27%2520height%3D%27100%27%2520rx%3D%2720%27%2520fill%3D%27%25230f766e%27%2F%253E%253Ctext%2520x%3D%2750%27%2520y%3D%2766%27%2520font-size%3D%2746%27%2520font-family%3D%27sans-serif%27%2520font-weight%3D%27bold%27%2520fill%3D%27white%27%2520text-anchor%3D%27middle%27%253EBOP%253C%2Ftext%3E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D' />
+  <meta name="theme-color" content="#0f766e" />
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- SheetJS (Export Excel .xlsx) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Chart.js (Grafik Persentase Keseluruhan) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    /* Reset & Full Page Overlay untuk Blogger / Web Standalone */
+    html, body {
+      margin: 0 !important;
+      padding: 0 !important;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+      overflow-x: hidden;
+    }
+
+    #bop-app-root {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Glassmorphism Utilities */
+    .glass-panel {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.06);
+    }
+
+    .glass-sidebar {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-right: 1px solid rgba(226, 232, 240, 0.95);
+    }
+
+    .glass-bottom-nav {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(226, 232, 240, 0.95);
+      box-shadow: 0 -8px 24px -6px rgba(15, 23, 42, 0.08);
+    }
+
+    /* Responsif Desktop vs Mobile sesuai Mandat */
+    @media (min-width: 1024px) {
+      #desktop-sidebar { display: flex !important; }
+      #mobile-bottom-nav { display: none !important; }
+      #main-content-wrapper { margin-left: 270px; padding-bottom: 2.5rem; }
+    }
+
+    @media (max-width: 1023px) {
+      #desktop-sidebar { display: none !important; }
+      #mobile-bottom-nav { display: flex !important; }
+      #main-content-wrapper { margin-left: 0; padding-bottom: 6.5rem; }
+    }
+
+    /* Custom Scrollbar Tabel ARKAS */
+    .table-scroll::-webkit-scrollbar { height: 8px; width: 8px; }
+    .table-scroll::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 6px; }
+    .table-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 6px; }
+    .table-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* Print / Save PDF Styling */
+    @media print {
+      body * { visibility: hidden; }
+      #bop-app-root { position: static !important; overflow: visible !important; background: #fff !important; }
+      #print-area, #print-area * { visibility: visible; }
+      #print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        padding: 0;
+        margin: 0;
+      }
+      .no-print { display: none !important; }
+      table { font-size: 9px !important; border-collapse: collapse !important; width: 100% !important; }
+      th, td { border: 1px solid #334155 !important; padding: 4px 5px !important; }
+      @page { size: landscape; margin: 10mm; }
+    }
+  </style>
+</head>
+<body>
+  <div id="bop-app-root">
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-4 right-4 z-[100010] flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- Desktop Sidebar -->
+    <aside id="desktop-sidebar" class="glass-sidebar fixed top-0 left-0 bottom-0 w-[270px] z-40 flex-col justify-between p-5 no-print">
+      <div>
+        <!-- Brand Header -->
+        <div class="flex items-center gap-3 pb-5 border-b border-slate-200/80">
+          <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-600 text-white flex items-center justify-center font-extrabold text-base shadow-md shadow-teal-600/20">
+            BOP
+          </div>
+          <div>
+            <h1 class="font-bold text-slate-900 text-sm leading-tight">BOP PAUD 2027</h1>
+            <p class="text-[11px] text-slate-500 font-medium">Perencanaan Siap ARKAS</p>
+          </div>
+        </div>
+
+        <!-- Preview Mode Badge (Hanya tampil jika IS_PREVIEW === true) -->
+        <div id="sidebar-preview-badge" class="hidden mt-4 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+          <div class="font-bold flex items-center gap-1.5">
+            <i data-lucide="flask-conical" class="w-3.5 h-3.5 text-amber-600"></i> Mode Preview Aktif
+          </div>
+          <p class="mt-1 text-[11px] leading-relaxed text-amber-700">
+            Data berjalan di memori sementara untuk simulasi.
+          </p>
+        </div>
+
+        <!-- Menu Navigasi (Hanya 2 Tampilan Utama: Dashboard & Login/Panel Admin) -->
+        <nav class="mt-6 space-y-2">
+          <p class="px-3 text-[10px] font-bold uppercase tracking-wider text-slate-400">Menu Utama</p>
+          <button onclick="switchView('dashboard')" id="nav-desk-dashboard" class="w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition-all bg-teal-600 text-white shadow-sm">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+            <span>Dashboard Perencanaan</span>
+          </button>
+
+          <button onclick="switchView('admin')" id="nav-desk-admin" class="w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all text-slate-600 hover:bg-slate-100">
+            <span class="flex items-center gap-3">
+              <i data-lucide="shield-check" class="w-4 h-4"></i>
+              <span id="nav-desk-admin-label">Login Admin</span>
+            </span>
+            <span id="admin-status-dot" class="w-2 h-2 rounded-full bg-slate-300"></span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Footer Info Satuan -->
+      <div class="pt-4 border-t border-slate-200/80">
+        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
+          <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Satuan Pendidikan</p>
+          <p id="sidebar-nama-satuan" class="text-xs font-bold text-slate-800 mt-0.5 truncate">PAUD ARIFA</p>
+          <p id="sidebar-nama-kepsek" class="text-[11px] text-slate-500 mt-0.5 truncate">Kepsek: -</p>
+          <p class="text-[11px] text-teal-700 font-semibold mt-1">Tahun Anggaran 2027</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav id="mobile-bottom-nav" class="glass-bottom-nav fixed bottom-3 left-3 right-3 z-40 rounded-2xl px-3 py-2 justify-around items-center no-print">
+      <button onclick="switchView('dashboard')" id="nav-mob-dashboard" class="flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl text-teal-600 font-bold text-xs transition-all">
+        <i data-lucide="layout-dashboard" class="w-5 h-5 mb-0.5"></i>
+        <span>Dashboard BOP</span>
+      </button>
+      <div class="w-px h-7 bg-slate-200 mx-1"></div>
+      <button onclick="switchView('admin')" id="nav-mob-admin" class="flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-500 font-semibold text-xs transition-all">
+        <i data-lucide="shield-check" class="w-5 h-5 mb-0.5"></i>
+        <span id="nav-mob-admin-label">Login Admin</span>
+      </button>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main id="main-content-wrapper" class="flex-1 p-4 sm:p-6 lg:p-8 max-w-[1600px] w-full mx-auto">
+
+      <!-- ========================================================= -->
+      <!-- VIEW 1: DASHBOARD PERENCANAAN BOP 2027                    -->
+      <!-- ========================================================= -->
+      <section id="view-dashboard" class="space-y-6">
+        <!-- Top Header & Export Buttons -->
+        <div class="glass-panel rounded-2xl p-5 sm:p-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 no-print">
+          <div>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="px-2.5 py-1 rounded-lg bg-teal-50 text-teal-700 border border-teal-200 text-xs font-bold">TA 2027</span>
+              <span id="header-role-badge" class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-semibold">Mode Tampilan Publik</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900 mt-2">
+              Perencanaan BOP <span id="dash-nama-satuan" class="text-teal-700">PAUD ARIFA</span>
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+              Rencana Kegiatan dan Anggaran Satuan (RKAS) 12 Bulan untuk acuan input aplikasi ARKAS.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2.5">
+            <button onclick="openItemModal()" id="btn-tambah-anggaran" class="hidden inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs sm:text-sm font-bold shadow-sm transition-all">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i>
+              <span>Tambah Rincian Anggaran</span>
+            </button>
+            <button onclick="exportToExcel()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold shadow-sm transition-all">
+              <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+              <span>Unduh Excel</span>
+            </button>
+            <button onclick="printPDF()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs sm:text-sm font-bold shadow-sm transition-all">
+              <i data-lucide="printer" class="w-4 h-4"></i>
+              <span>Cetak / Simpan PDF</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Alert / Peringatan Otomatis Kepatuhan Pagu & Persentase -->
+        <div id="validation-alerts-container" class="space-y-2.5 no-print"></div>
+
+        <!-- Summary Cards (Pagu, Total Terencana, Sisa Pagu) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 no-print">
+          <div class="glass-panel rounded-2xl p-5 border-l-4 border-l-teal-600 bg-gradient-to-br from-teal-50/70 to-white">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-teal-800">Pagu BOP Tahun 2027</span>
+              <div class="w-9 h-9 rounded-xl bg-teal-600 text-white flex items-center justify-center shadow-sm">
+                <i data-lucide="wallet" class="w-5 h-5"></i>
+              </div>
+            </div>
+            <p id="stat-pagu-total" class="text-2xl font-extrabold text-teal-950 mt-2">Rp 0</p>
+            <p class="text-xs text-teal-700 font-medium mt-1">Alokasi dana BOP 12 bulan</p>
+          </div>
+
+          <div class="glass-panel rounded-2xl p-5 border-l-4 border-l-indigo-600 bg-gradient-to-br from-indigo-50/70 to-white">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-indigo-800">Total Anggaran Terencana</span>
+              <div class="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-sm">
+                <i data-lucide="calculator" class="w-5 h-5"></i>
+              </div>
+            </div>
+            <p id="stat-total-anggaran" class="text-2xl font-extrabold text-indigo-950 mt-2">Rp 0</p>
+            <p id="stat-persen-terserap" class="text-xs font-bold text-indigo-600 mt-1">0% dari total pagu</p>
+          </div>
+
+          <div id="card-sisa-pagu" class="glass-panel rounded-2xl p-5 border-l-4 border-l-amber-500 bg-gradient-to-br from-amber-50/70 to-white">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold uppercase tracking-wider text-amber-800">Sisa / Selisih Pagu</span>
+              <div id="icon-sisa-pagu" class="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-sm">
+                <i data-lucide="scale" class="w-5 h-5"></i>
+              </div>
+            </div>
+            <p id="stat-sisa-pagu" class="text-2xl font-extrabold text-amber-800 mt-2">Rp 0</p>
+            <p id="stat-status-pagu" class="text-xs text-amber-700 font-medium mt-1">Status: Seimbang</p>
+          </div>
+        </div>
+
+        <!-- Panel Keseimbangan Tahap 1 (Jan-Jun) & Tahap 2 (Jul-Des) -->
+        <div class="glass-panel rounded-2xl p-5 no-print">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <i data-lucide="arrow-left-right" class="w-4 h-4 text-cyan-600"></i>
+              Keseimbangan Anggaran Tahap 1 (Jan–Jun) & Tahap 2 (Jul–Des)
+            </h3>
+            <span id="badge-keseimbangan-tahap" class="px-2.5 py-1 rounded-lg bg-cyan-50 text-cyan-800 border border-cyan-200 text-[11px] font-bold">
+              Proporsi Tahap 1 vs Tahap 2: 0% : 0%
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Tahap 1 -->
+            <div class="p-4 rounded-xl bg-gradient-to-br from-cyan-50 to-sky-50/60 border border-cyan-200">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold text-cyan-900">TAHAP 1 (Januari – Juni 2027)</span>
+                <span id="persen-tahap-1" class="px-2.5 py-0.5 rounded-full bg-cyan-600 text-white text-xs font-extrabold">0%</span>
+              </div>
+              <p id="nominal-tahap-1" class="text-xl font-extrabold text-cyan-950 mt-2">Rp 0</p>
+              <div class="w-full h-2.5 bg-cyan-200/70 rounded-full mt-2.5 overflow-hidden">
+                <div id="bar-tahap-1" class="h-full bg-cyan-600 transition-all duration-300" style="width: 0%"></div>
+              </div>
+              <p id="ket-tahap-1" class="text-[11px] text-cyan-800 mt-1.5">0% dari total pagu (Target ideal: 50%)</p>
+            </div>
+
+            <!-- Tahap 2 -->
+            <div class="p-4 rounded-xl bg-gradient-to-br from-violet-50 to-purple-50/60 border border-violet-200">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold text-violet-900">TAHAP 2 (Juli – Desember 2027)</span>
+                <span id="persen-tahap-2" class="px-2.5 py-0.5 rounded-full bg-violet-600 text-white text-xs font-extrabold">0%</span>
+              </div>
+              <p id="nominal-tahap-2" class="text-xl font-extrabold text-violet-950 mt-2">Rp 0</p>
+              <div class="w-full h-2.5 bg-violet-200/70 rounded-full mt-2.5 overflow-hidden">
+                <div id="bar-tahap-2" class="h-full bg-violet-600 transition-all duration-300" style="width: 0%"></div>
+              </div>
+              <p id="ket-tahap-2" class="text-[11px] text-violet-800 mt-1.5">0% dari total pagu (Target ideal: 50%)</p>
+            </div>
+          </div>
+
+          <!-- Bar Perbandingan Keseimbangan Visual -->
+          <div class="mt-4 pt-3 border-t border-slate-200/80">
+            <div class="flex justify-between text-[11px] font-bold mb-1.5">
+              <span class="text-cyan-700">Tahap 1 (<span id="split-pct-1">0%</span>)</span>
+              <span class="text-slate-400">Komposisi Rencana 1 Tahun</span>
+              <span class="text-violet-700">Tahap 2 (<span id="split-pct-2">0%</span>)</span>
+            </div>
+            <div class="w-full h-3 rounded-full bg-slate-200 overflow-hidden flex">
+              <div id="split-bar-1" class="h-full bg-cyan-600 transition-all duration-300" style="width: 50%"></div>
+              <div id="split-bar-2" class="h-full bg-violet-600 transition-all duration-300" style="width: 50%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Monitoring Batas Persentase Wajib (Buku Min 5%, Sarpras Max 20%, Honor Max 40%) -->
+        <div class="glass-panel rounded-2xl p-5 no-print">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+              <i data-lucide="pie-chart" class="w-4 h-4 text-teal-600"></i>
+              Monitoring Ketentuan Persentase Penggunaan Dana BOP
+            </h3>
+            <span class="text-[11px] text-slate-400 font-medium">Dihitung terhadap Total Pagu</span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Buku Minimal 5% (Warna Biru Sky) -->
+            <div class="p-4 rounded-xl bg-gradient-to-br from-sky-50 to-white border border-sky-200">
+              <div class="flex justify-between items-center text-xs font-bold">
+                <span class="text-sky-900">1. Anggaran Buku (Min. <span id="lbl-min-buku">5</span>%)</span>
+                <span id="val-persen-buku" class="px-2 py-0.5 rounded-md bg-sky-100 text-sky-800">0%</span>
+              </div>
+              <p id="val-nominal-buku" class="text-base font-extrabold text-sky-950 mt-1.5">Rp 0</p>
+              <div class="w-full h-2 bg-sky-100 rounded-full mt-2.5 overflow-hidden">
+                <div id="bar-persen-buku" class="h-full bg-sky-600 transition-all duration-300" style="width: 0%"></div>
+              </div>
+              <p id="ket-persen-buku" class="text-[11px] text-sky-700 mt-1.5">Minimal wajib: Rp 0</p>
+            </div>
+
+            <!-- Sarpras Maksimal 20% (Warna Oranye Amber) -->
+            <div class="p-4 rounded-xl bg-gradient-to-br from-orange-50 to-white border border-orange-200">
+              <div class="flex justify-between items-center text-xs font-bold">
+                <span class="text-orange-900">2. Sarana Prasarana (Maks. <span id="lbl-max-sarpras">20</span>%)</span>
+                <span id="val-persen-sarpras" class="px-2 py-0.5 rounded-md bg-orange-100 text-orange-800">0%</span>
+              </div>
+              <p id="val-nominal-sarpras" class="text-base font-extrabold text-orange-950 mt-1.5">Rp 0</p>
+              <div class="w-full h-2 bg-orange-100 rounded-full mt-2.5 overflow-hidden">
+                <div id="bar-persen-sarpras" class="h-full bg-orange-500 transition-all duration-300" style="width: 0%"></div>
+              </div>
+              <p id="ket-persen-sarpras" class="text-[11px] text-orange-700 mt-1.5">Batas maksimal: Rp 0</p>
+            </div>
+
+            <!-- Honor Maksimal 40% (Warna Ungu Fuchsia/Purple) -->
+            <div class="p-4 rounded-xl bg-gradient-to-br from-purple-50 to-white border border-purple-200">
+              <div class="flex justify-between items-center text-xs font-bold">
+                <span class="text-purple-900">3. Honor Guru & Tendik (Maks. <span id="lbl-max-honor">40</span>%)</span>
+                <span id="val-persen-honor" class="px-2 py-0.5 rounded-md bg-purple-100 text-purple-800">0%</span>
+              </div>
+              <p id="val-nominal-honor" class="text-base font-extrabold text-purple-950 mt-1.5">Rp 0</p>
+              <div class="w-full h-2 bg-purple-100 rounded-full mt-2.5 overflow-hidden">
+                <div id="bar-persen-honor" class="h-full bg-purple-600 transition-all duration-300" style="width: 0%"></div>
+              </div>
+              <p id="ket-persen-honor" class="text-[11px] text-purple-700 mt-1.5">Batas maksimal: Rp 0</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Switcher Sub-Menu Dashboard: Tabel Matriks vs Lihat Grafik Keseluruhan -->
+        <div class="flex flex-wrap items-center gap-2 no-print">
+          <button onclick="switchDashboardTab('tabel')" id="tab-btn-tabel" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-teal-600 text-white text-xs sm:text-sm font-bold shadow-sm transition-all">
+            <i data-lucide="table-2" class="w-4 h-4"></i>
+            <span>Tabel Matriks 12 Bulan</span>
+          </button>
+          <button onclick="switchDashboardTab('grafik')" id="tab-btn-grafik" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs sm:text-sm font-bold shadow-sm transition-all">
+            <i data-lucide="bar-chart-3" class="w-4 h-4 text-teal-600"></i>
+            <span>Lihat Grafik Keseluruhan (%)</span>
+          </button>
+        </div>
+
+        <!-- PANEL GRAFIK KESELURUHAN DENGAN PERSENTASE -->
+        <div id="dashboard-grafik-section" class="hidden glass-panel rounded-2xl p-5 sm:p-6 space-y-6 no-print">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 pb-4">
+            <div>
+              <h3 class="text-base font-extrabold text-slate-900">Visualisasi Grafik Perencanaan BOP 2027 & Persentase</h3>
+              <p class="text-xs text-slate-500">Analisis proporsi per kategori anggaran dan sebaran serapan bulanan.</p>
+            </div>
+            <span class="px-3 py-1 rounded-lg bg-teal-50 text-teal-700 text-xs font-bold">Otomatis Terhitung (%)</span>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <!-- Grafik Donut Kategori -->
+            <div class="lg:col-span-5 p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-600 mb-3 text-center">Proporsi Per Kategori (%)</h4>
+              <div class="relative h-[260px] w-full flex items-center justify-center">
+                <canvas id="chart-kategori-donut"></canvas>
+              </div>
+              <div id="chart-kategori-legend" class="mt-4 space-y-2"></div>
+            </div>
+
+            <!-- Grafik Batang 12 Bulan -->
+            <div class="lg:col-span-7 p-4 rounded-2xl bg-slate-50/80 border border-slate-200/80">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-slate-600 mb-3 text-center">Distribusi Anggaran 12 Bulan & Persentase (%)</h4>
+              <div class="relative h-[320px] w-full">
+                <canvas id="chart-bulanan-bar"></canvas>
+              </div>
+              <p class="text-[11px] text-slate-500 mt-3 text-center">
+                *Persentase pada setiap bulan menunjukkan porsi serapan bulan tersebut terhadap Total Pagu BOP 2027.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Area Cetak PDF & Tabel Rincian Anggaran 12 Bulan -->
+        <div id="print-area" class="glass-panel rounded-2xl p-5">
+          <!-- Kop Cetak (Hanya muncul saat Print/PDF) -->
+          <div class="hidden print:block mb-4 border-b-2 border-slate-800 pb-3 text-center">
+            <h1 class="text-lg font-bold uppercase">RENCANA KEGIATAN DAN ANGGARAN SATUAN (RKAS) BOP PAUD</h1>
+            <h2 id="print-nama-satuan" class="text-base font-bold">PAUD ARIFA — TAHUN ANGGARAN 2027</h2>
+            <p id="print-nama-kepsek" class="text-xs font-semibold mt-0.5">Kepala Sekolah: -</p>
+            <p id="print-ringkasan-pagu" class="text-xs mt-1">Pagu Anggaran: Rp 0 | Total Rencana: Rp 0</p>
+          </div>
+
+          <!-- Filter & Pencarian Tabel -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 no-print">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Matriks Perencanaan 12 Bulan (Januari – Desember 2027)</h3>
+              <p class="text-xs text-slate-500">Geser tabel ke kanan untuk melihat rincian volume & anggaran tiap bulan.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <select id="filter-kategori" onchange="renderBudgetTable()" class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                <option value="ALL">Semua Kategori</option>
+              </select>
+              <input type="text" id="search-uraian" oninput="renderBudgetTable()" placeholder="Cari uraian kegiatan..." class="px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            </div>
+          </div>
+
+          <!-- Tabel Matriks 12 Bulan -->
+          <div class="table-scroll overflow-x-auto rounded-xl border border-slate-200">
+            <table class="w-full text-left border-collapse min-w-[1450px]">
+              <thead>
+                <tr class="bg-slate-800 text-white text-[11px] uppercase tracking-wider">
+                  <th class="p-3 font-bold sticky left-0 bg-slate-800 z-10 w-10 text-center">No</th>
+                  <th class="p-3 font-bold sticky left-10 bg-slate-800 z-10 min-w-[230px]">Kategori & Uraian Kegiatan</th>
+                  <th class="p-3 font-bold text-center">Satuan</th>
+                  <th class="p-3 font-bold text-right">Harga Satuan</th>
+                  <th class="p-3 font-bold text-center bg-slate-700">Vol</th>
+                  <th class="p-3 font-bold text-right bg-teal-700">Total 1 Tahun</th>
+                  <th class="p-2.5 font-semibold text-right bg-cyan-800">Jan</th>
+                  <th class="p-2.5 font-semibold text-right bg-cyan-800">Feb</th>
+                  <th class="p-2.5 font-semibold text-right bg-cyan-800">Mar</th>
+                  <th class="p-2.5 font-semibold text-right bg-cyan-800">Apr</th>
+                  <th class="p-2.5 font-semibold text-right bg-cyan-800">Mei</th>
+                  <th class="p-2.5 font-semibold text-right bg-cyan-800">Jun</th>
+                  <th class="p-2.5 font-semibold text-right bg-violet-800">Jul</th>
+                  <th class="p-2.5 font-semibold text-right bg-violet-800">Agu</th>
+                  <th class="p-2.5 font-semibold text-right bg-violet-800">Sep</th>
+                  <th class="p-2.5 font-semibold text-right bg-violet-800">Okt</th>
+                  <th class="p-2.5 font-semibold text-right bg-violet-800">Nov</th>
+                  <th class="p-2.5 font-semibold text-right bg-violet-800">Des</th>
+                  <th id="th-aksi-admin" class="p-3 font-bold text-center no-print hidden">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="budget-table-body" class="divide-y divide-slate-200 text-xs bg-white">
+                <!-- Diisi dinamis oleh JS -->
+              </tbody>
+              <tfoot id="budget-table-foot" class="bg-slate-100 font-bold text-xs text-slate-900 border-t-2 border-slate-300">
+                <!-- Diisi dinamis oleh JS -->
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- VIEW 2: LOGIN ADMIN & PANEL PENGATURAN MASTER             -->
+      <!-- ========================================================= -->
+      <section id="view-admin" class="hidden space-y-6">
+        <!-- Box Autentikasi: Tab Login & Tab Daftar Akun (Tampil jika belum login) -->
+        <div id="admin-login-box" class="max-w-md mx-auto mt-6 glass-panel rounded-3xl p-6 sm:p-8">
+          <div class="w-14 h-14 rounded-2xl bg-teal-600 text-white flex items-center justify-center mx-auto shadow-lg shadow-teal-600/20">
+            <i data-lucide="shield-check" class="w-7 h-7"></i>
+          </div>
+          <h2 class="text-xl font-extrabold text-center text-slate-900 mt-4">Akses Akun Sekolah BOP</h2>
+          <p class="text-xs text-center text-slate-500 mt-1">
+            Masuk atau daftarkan akun sekolah untuk mengelola Perencanaan BOP 2027.
+          </p>
+
+          <!-- Switcher Tab Masuk vs Daftar Akun -->
+          <div class="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-slate-100 mt-5">
+            <button type="button" onclick="switchAuthTab('login')" id="auth-tab-login" class="py-2 rounded-lg text-xs font-bold bg-white text-teal-700 shadow-sm transition-all">
+              Masuk (Login)
+            </button>
+            <button type="button" onclick="switchAuthTab('register')" id="auth-tab-register" class="py-2 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-700 transition-all">
+              Daftar Akun
+            </button>
+          </div>
+
+          <!-- FORM 1: LOGIN -->
+          <div id="auth-form-login-wrapper">
+            <!-- Info Akun Demo HANYA tampil jika IS_PREVIEW === true -->
+            <div id="login-preview-hint" class="hidden mt-4 p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
+              <p class="font-bold">Info Login Mode Preview:</p>
+              <p class="mt-1">User / Email: <code class="bg-white px-1.5 py-0.5 rounded border">admin@paud.sch.id</code></p>
+              <p class="mt-0.5">Password: <code class="bg-white px-1.5 py-0.5 rounded border">admin2027</code></p>
+            </div>
+
+            <form onsubmit="handleAdminLogin(event)" class="mt-5 space-y-4">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">Username / Email</label>
+                <input type="text" id="login-email" required placeholder="admin@paud.sch.id atau username" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">Password</label>
+                <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              </div>
+              <button type="submit" id="btn-submit-login" class="w-full py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2">
+                <i data-lucide="log-in" class="w-4 h-4"></i>
+                <span>Masuk ke Panel Sekolah</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- FORM 2: DAFTAR AKUN BARU -->
+          <div id="auth-form-register-wrapper" class="hidden">
+            <form onsubmit="handleAccountRegister(event)" class="mt-5 space-y-3.5">
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Nama Sekolah / Satuan PAUD</label>
+                <input type="text" id="reg-nama-sekolah" required placeholder="Contoh: KB / TK ARIFA" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Nama Kepala Sekolah</label>
+                <input type="text" id="reg-nama-kepsek" required placeholder="Contoh: Siti Aminah, S.Pd" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">User (Username / Email)</label>
+                <input type="text" id="reg-username" required placeholder="Contoh: paudarifa atau admin@paud.sch.id" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              </div>
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Password</label>
+                <input type="password" id="reg-password" minlength="6" required placeholder="Minimal 6 karakter" class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500" />
+              </div>
+              <button type="submit" id="btn-submit-register" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2 mt-2">
+                <i data-lucide="user-plus" class="w-4 h-4"></i>
+                <span>Daftar & Simpan Akun Sekolah</span>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Panel Kontrol Admin (Tampil setelah Admin berhasil Login) -->
+        <div id="admin-control-panel" class="hidden space-y-6">
+          <!-- Header Panel Admin -->
+          <div class="glass-panel rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <span class="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-bold">Sesi Admin Aktif</span>
+              <h2 class="text-xl font-extrabold text-slate-900 mt-1.5">Pengaturan Master BOP PAUD 2027</h2>
+              <p id="admin-logged-email" class="text-xs text-slate-500 mt-0.5">Login sebagai: -</p>
+            </div>
+            <div class="flex items-center gap-2.5">
+              <button onclick="switchView('dashboard')" class="px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold transition-all">
+                Ke Dashboard & Input Rincian
+              </button>
+              <button onclick="handleAdminLogout()" class="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition-all flex items-center gap-1.5">
+                <i data-lucide="log-out" class="w-4 h-4"></i>
+                <span>Keluar</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Form 1: Pengaturan Pagu & Batas Persentase -->
+            <div class="glass-panel rounded-2xl p-6">
+              <h3 class="text-base font-bold text-slate-900 flex items-center gap-2 pb-3 border-b border-slate-200">
+                <i data-lucide="sliders" class="w-4 h-4 text-teal-600"></i>
+                Pengaturan Pagu & Batas Persentase
+              </h3>
+
+              <form onsubmit="saveMasterSettings(event)" class="mt-4 space-y-4">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Nama Satuan PAUD / Sekolah</label>
+                  <input type="text" id="set-nama-satuan" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Nama Kepala Sekolah</label>
+                  <input type="text" id="set-nama-kepsek" placeholder="Nama lengkap Kepala Sekolah" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Pagu Total BOP 2027 (Rp)</label>
+                  <input type="number" id="set-pagu-total" min="0" step="1000" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                  <div>
+                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Min. Buku (%)</label>
+                    <input type="number" id="set-min-buku" min="0" max="100" step="0.1" required class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Maks. Sarpras (%)</label>
+                    <input type="number" id="set-max-sarpras" min="0" max="100" step="0.1" required class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Maks. Honor (%)</label>
+                    <input type="number" id="set-max-honor" min="0" max="100" step="0.1" required class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                  </div>
+                </div>
+
+                <button type="submit" class="w-full py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs sm:text-sm shadow-sm transition-all">
+                  Simpan Pengaturan Pagu & Persentase
+                </button>
+              </form>
+            </div>
+
+            <!-- Form 2: Kelola Kategori Anggaran -->
+            <div class="glass-panel rounded-2xl p-6 flex flex-col justify-between">
+              <div>
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2 pb-3 border-b border-slate-200">
+                  <i data-lucide="folder-plus" class="w-4 h-4 text-teal-600"></i>
+                  Kelola Kategori Anggaran BOP
+                </h3>
+
+                <form onsubmit="addCategory(event)" class="mt-4 flex flex-col sm:flex-row gap-2">
+                  <input type="text" id="new-cat-name" required placeholder="Nama kategori (mis: Listrik & Internet)" class="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500" />
+                  <select id="new-cat-rule" class="px-3 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <option value="BEBAS">Aturan: Umum / Bebas</option>
+                    <option value="MIN_BUKU">Aturan: Buku (Min %)</option>
+                    <option value="MAX_SARPRAS">Aturan: Sarpras (Maks %)</option>
+                    <option value="MAX_HONOR">Aturan: Honor (Maks %)</option>
+                  </select>
+                  <button type="submit" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold whitespace-nowrap">
+                    + Tambah
+                  </button>
+                </form>
+
+                <div class="mt-4 max-h-[260px] overflow-y-auto divide-y divide-slate-200 border border-slate-200 rounded-xl bg-white">
+                  <div id="admin-category-list"></div>
+                </div>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-3">
+                *Kategori yang masih memiliki rincian item anggaran tidak dapat dihapus sebelum itemnya dipindahkan/dihapus.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ========================================================= -->
+    <!-- MODAL TAMBAH / EDIT RINCIAN ANGGARAN 12 BULAN             -->
+    <!-- ========================================================= -->
+    <div id="item-modal" class="hidden fixed inset-0 z-[100005] bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white rounded-3xl max-w-3xl w-full p-6 shadow-2xl border border-slate-200 my-auto">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+          <h3 id="modal-item-title" class="text-lg font-extrabold text-slate-900">Tambah Rincian Anggaran 2027</h3>
+          <button onclick="closeItemModal()" class="p-1.5 rounded-xl hover:bg-slate-100 text-slate-500">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+        <form onsubmit="saveBudgetItem(event)" class="mt-4 space-y-4">
+          <input type="hidden" id="edit-item-id" />
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Kategori Anggaran</label>
+              <select id="item-kategori" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500"></select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Kode Rekening / Kegiatan ARKAS (Opsional)</label>
+              <input type="text" id="item-kode-arkas" placeholder="Contoh: 03.03.01 / 5.1.02.01" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="sm:col-span-1">
+              <label class="block text-xs font-bold text-slate-700 mb-1">Satuan</label>
+              <input type="text" id="item-satuan" required placeholder="Bulan / Paket / Rim / Eks" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-bold text-slate-700 mb-1">Harga Satuan (Rp)</label>
+              <input type="number" id="item-harga" min="0" required oninput="recalcModalPreview()" placeholder="0" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-sm font-bold text-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-slate-700 mb-1">Uraian Belanja / Kegiatan</label>
+            <input type="text" id="item-uraian" required placeholder="Contoh: Langganan Internet & Kuota Sekolah" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500" />
+          </div>
+
+          <!-- Distribusi Volume 12 Bulan -->
+          <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+            <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+              <span class="text-xs font-bold text-slate-800">Distribusi Volume per Bulan (Jan – Des 2027)</span>
+              <div class="flex items-center gap-1.5">
+                <button type="button" onclick="fillAllMonths(1)" class="px-2.5 py-1 rounded-lg bg-teal-100 hover:bg-teal-200 text-teal-800 text-[11px] font-bold">
+                  Isi 1 Tiap Bulan (12 Bln)
+                </button>
+                <button type="button" onclick="fillAllMonths(0)" class="px-2.5 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 text-[11px] font-bold">
+                  Reset 0
+                </button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 sm:grid-cols-6 gap-2.5" id="modal-months-grid">
+              <!-- Diisi 12 input bulan via JS -->
+            </div>
+
+            <div class="mt-3 pt-3 border-t border-slate-200 flex items-center justify-between text-xs">
+              <span class="font-semibold text-slate-600">Total Volume: <strong id="modal-total-vol" class="text-slate-900">0</strong></span>
+              <span class="font-semibold text-slate-600">Estimasi Total: <strong id="modal-total-rp" class="text-teal-700 text-sm">Rp 0</strong></span>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-2.5 pt-2">
+            <button type="button" onclick="closeItemModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50">
+              Batal
+            </button>
+            <button type="submit" class="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-sm">
+              Simpan Rincian Anggaran
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    // =========================================================================
+    // KONFIGURASI APLIKASI (SAKLAR MODE & FIREBASE CONFIG)
+    // =========================================================================
+    const IS_PREVIEW = false; // Ubah menjadi false SAAT DEPLOY / PUBLISH agar terhubung murni ke Firebase tanpa data dummy
+
+    // PASTE FIREBASE CONFIG ANDA DI SINI
+const firebaseConfig = {
+  apiKey: "AIzaSyB7meAzREzVTT9OYlZiyI1_v8BSLftZHdc",
+  authDomain: "rencana-bop.firebaseapp.com",
+  projectId: "rencana-bop",
+  storageBucket: "rencana-bop.firebasestorage.app",
+  messagingSenderId: "809478172557",
+  appId: "1:809478172557:web:a53425e14cf11faa1ed7c4"
+
+    // Import Firebase SDK v10 Modular
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      signOut,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc,
+      setDoc,
+      collection,
+      addDoc,
+      updateDoc,
+      deleteDoc,
+      onSnapshot,
+      query,
+      orderBy,
+      serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    // =========================================================================
+    // REGISTRASI SERVICE WORKER PWA (1 FILE TUNGGAL VIA BLOB)
+    // =========================================================================
+    if ('serviceWorker' in navigator) {
+      const swCode = `
+        const CACHE_NAME = 'bop-paud-2027-v1';
+        self.addEventListener('install', (e) => self.skipWaiting());
+        self.addEventListener('activate', (e) => self.clients.claim());
+        self.addEventListener('fetch', (e) => {
+          e.respondWith(fetch(e.request).catch(() => new Response('Offline mode')));
+        });
+      `;
+      const blob = new Blob([swCode], { type: 'application/javascript' });
+      navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+    }
+
+    // =========================================================================
+    // NAVIGASI UTAMA (DASHBOARD <-> LOGIN / PANEL ADMIN)
+    // =========================================================================
+    window.switchView = function(viewName) {
+      const viewDash = document.getElementById('view-dashboard');
+      const viewAdmin = document.getElementById('view-admin');
+
+      const deskDash = document.getElementById('nav-desk-dashboard');
+      const deskAdmin = document.getElementById('nav-desk-admin');
+      const mobDash = document.getElementById('nav-mob-dashboard');
+      const mobAdmin = document.getElementById('nav-mob-admin');
+
+      if (viewName === 'admin') {
+        viewDash.classList.add('hidden');
+        viewAdmin.classList.remove('hidden');
+
+        deskAdmin.className = 'w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all bg-teal-600 text-white shadow-sm';
+        deskDash.className = 'w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition-all text-slate-600 hover:bg-slate-100';
+
+        mobAdmin.className = 'flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl text-teal-600 font-bold text-xs transition-all';
+        mobDash.className = 'flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-500 font-semibold text-xs transition-all';
+      } else {
+        viewAdmin.classList.add('hidden');
+        viewDash.classList.remove('hidden');
+
+        deskDash.className = 'w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-semibold transition-all bg-teal-600 text-white shadow-sm';
+        deskAdmin.className = 'w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-sm font-semibold transition-all text-slate-600 hover:bg-slate-100';
+
+        mobDash.className = 'flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl text-teal-600 font-bold text-xs transition-all';
+        mobAdmin.className = 'flex-1 flex flex-col items-center justify-center py-1.5 rounded-xl text-slate-500 font-semibold text-xs transition-all';
+      }
+
+      if (window.lucide) lucide.createIcons();
+    };
+
+    // =========================================================================
+    // KONSTANTA & STATE GLOBAL
+    // =========================================================================
+    const MONTHS = [
+      { key: 'jan', label: 'Jan' }, { key: 'feb', label: 'Feb' }, { key: 'mar', label: 'Mar' },
+      { key: 'apr', label: 'Apr' }, { key: 'mei', label: 'Mei' }, { key: 'jun', label: 'Jun' },
+      { key: 'jul', label: 'Jul' }, { key: 'agu', label: 'Agu' }, { key: 'sep', label: 'Sep' },
+      { key: 'okt', label: 'Okt' }, { key: 'nov', label: 'Nov' }, { key: 'des', label: 'Des' }
+    ];
+
+    let appState = {
+      isAdmin: false,
+      adminEmail: '',
+      accounts: [], // Menyimpan daftar akun untuk mode preview
+      settings: {
+        nama_satuan: 'PAUD ARIFA',
+        nama_kepsek: 'Siti Aminah, S.Pd',
+        tahun_anggaran: 2027,
+        pagu_total: 0,
+        min_persen_buku: 5,
+        max_persen_sarpras: 20,
+        max_persen_honor: 40
+      },
+      categories: [],
+      items: []
+    };
+
+    let auth = null;
+    let db = null;
+    let chartKategoriInstance = null;
+    let chartBulananInstance = null;
+    let activeDashboardTab = 'tabel';
+
+    // =========================================================================
+    // INISIALISASI MODE (PREVIEW VS PRODUKSI FIRESTORE)
+    // =========================================================================
+    function initApp() {
+      buildModalMonthInputs();
+
+      if (IS_PREVIEW) {
+        // Tampilkan indikator Preview secara eksplisit
+        document.getElementById('sidebar-preview-badge').classList.remove('hidden');
+        document.getElementById('login-preview-hint').classList.remove('hidden');
+
+        // Data dummy minimal (maksimal 1-2 per koleksi) khusus simulasi
+        appState.settings = {
+          nama_satuan: 'PAUD ARIFA',
+          nama_kepsek: 'Siti Aminah, S.Pd',
+          tahun_anggaran: 2027,
+          pagu_total: 36000000,
+          min_persen_buku: 5,
+          max_persen_sarpras: 20,
+          max_persen_honor: 40
+        };
+
+        appState.accounts = [
+          {
+            nama_sekolah: 'PAUD ARIFA',
+            nama_kepsek: 'Siti Aminah, S.Pd',
+            username: 'admin@paud.sch.id',
+            password: 'admin2027'
+          }
+        ];
+
+        appState.categories = [
+          { id: 'cat_buku', nama_kategori: 'Pengembangan Perpustakaan / Buku', jenis_aturan: 'MIN_BUKU', urutan: 1 },
+          { id: 'cat_sarpras', nama_kategori: 'Sarana dan Prasarana Sekolah', jenis_aturan: 'MAX_SARPRAS', urutan: 2 },
+          { id: 'cat_honor', nama_kategori: 'Honor Guru dan Tenaga Kependidikan', jenis_aturan: 'MAX_HONOR', urutan: 3 },
+          { id: 'cat_operasional', nama_kategori: 'Listrik, Internet, Kuota, Air & ATK', jenis_aturan: 'BEBAS', urutan: 4 }
+        ];
+
+        appState.items = [
+          {
+            id: 'item_1',
+            kategori_id: 'cat_buku',
+            kode_rekening_arkas: '03.03.01',
+            uraian_kegiatan: 'Pengadaan Buku Cerita Bergambar & Modul PAUD',
+            satuan: 'Paket',
+            harga_satuan: 1000000,
+            vol_bulan: { jan: 0, feb: 1, mar: 0, apr: 0, mei: 0, jun: 0, jul: 1, agu: 0, sep: 0, okt: 0, nov: 0, des: 0 }
+          },
+          {
+            id: 'item_2',
+            kategori_id: 'cat_honor',
+            kode_rekening_arkas: '07.12.01',
+            uraian_kegiatan: 'Honor Guru Pendidik PAUD Non-ASN (2 Orang)',
+            satuan: 'Bulan',
+            harga_satuan: 1100000,
+            vol_bulan: { jan: 1, feb: 1, mar: 1, apr: 1, mei: 1, jun: 1, jul: 1, agu: 1, sep: 1, okt: 1, nov: 1, des: 1 }
+          }
+        ];
+
+        refreshAllUI();
+      } else {
+        // MODE PRODUKSI MURNI: Zero Dummy Data, Terhubung langsung ke Firebase
+        try {
+          const fbApp = initializeApp(firebaseConfig);
+          auth = getAuth(fbApp);
+          db = getFirestore(fbApp);
+
+          // Pantau status login Admin via Firebase Auth
+          onAuthStateChanged(auth, (user) => {
+            if (user) {
+              appState.isAdmin = true;
+              appState.adminEmail = user.email;
+            } else {
+              appState.isAdmin = false;
+              appState.adminEmail = '';
+            }
+            refreshAllUI();
+          });
+
+          // Real-time listener Pengaturan BOP 2027
+          onSnapshot(doc(db, 'pengaturan_bop', 'tahun_2027'), (snap) => {
+            if (snap.exists()) {
+              appState.settings = { ...appState.settings, ...snap.data() };
+            }
+            refreshAllUI();
+          });
+
+          // Real-time listener Kategori BOP
+          const qCat = query(collection(db, 'kategori_bop'), orderBy('urutan', 'asc'));
+          onSnapshot(qCat, (snapshot) => {
+            appState.categories = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            refreshAllUI();
+          });
+
+          // Real-time listener Item Anggaran 2027
+          const qItems = query(collection(db, 'item_anggaran_2027'), orderBy('created_at', 'asc'));
+          onSnapshot(qItems, (snapshot) => {
+            appState.items = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+            refreshAllUI();
+          });
+        } catch (err) {
+          showToast('Gagal menginisialisasi Firebase. Periksa firebaseConfig.', 'error');
+        }
+      }
+    }
+
+    // =========================================================================
+    // KALKULASI & VALIDASI ANGGARAN
+    // =========================================================================
+    function calculateSummary() {
+      const pagu = Number(appState.settings.pagu_total) || 0;
+      let totalAnggaran = 0;
+      let totalBuku = 0;
+      let totalSarpras = 0;
+      let totalHonor = 0;
+      let totalTahap1 = 0;
+      let totalTahap2 = 0;
+
+      const tahap1Keys = ['jan', 'feb', 'mar', 'apr', 'mei', 'jun'];
+      const monthlyTotals = {};
+      MONTHS.forEach(m => { monthlyTotals[m.key] = 0; });
+
+      const categoryTotals = {};
+      appState.categories.forEach(c => { categoryTotals[c.id] = 0; });
+
+      const catRuleMap = {};
+      appState.categories.forEach(c => { catRuleMap[c.id] = c.jenis_aturan; });
+
+      appState.items.forEach(item => {
+        const harga = Number(item.harga_satuan) || 0;
+        let vol = 0;
+
+        MONTHS.forEach(m => {
+          const v = Number(item.vol_bulan?.[m.key]) || 0;
+          const nom = v * harga;
+          vol += v;
+          monthlyTotals[m.key] += nom;
+          if (tahap1Keys.includes(m.key)) totalTahap1 += nom;
+          else totalTahap2 += nom;
+        });
+
+        const subtotal = vol * harga;
+        totalAnggaran += subtotal;
+
+        if (categoryTotals[item.kategori_id] !== undefined) {
+          categoryTotals[item.kategori_id] += subtotal;
+        } else {
+          categoryTotals[item.kategori_id] = subtotal;
+        }
+
+        const rule = catRuleMap[item.kategori_id] || 'BEBAS';
+        if (rule === 'MIN_BUKU') totalBuku += subtotal;
+        if (rule === 'MAX_SARPRAS') totalSarpras += subtotal;
+        if (rule === 'MAX_HONOR') totalHonor += subtotal;
+      });
+
+      const pct = (val) => (pagu > 0 ? (val / pagu) * 100 : 0);
+
+      return {
+        pagu,
+        totalAnggaran,
+        sisaPagu: pagu - totalAnggaran,
+        persenTerserap: pct(totalAnggaran),
+        totalBuku,
+        persenBuku: pct(totalBuku),
+        totalSarpras,
+        persenSarpras: pct(totalSarpras),
+        totalHonor,
+        persenHonor: pct(totalHonor),
+        totalTahap1,
+        persenTahap1Pagu: pct(totalTahap1),
+        totalTahap2,
+        persenTahap2Pagu: pct(totalTahap2),
+        monthlyTotals,
+        categoryTotals
+      };
+    }
+
+    // =========================================================================
+    // RENDER UI & KARTU MONITORING
+    // =========================================================================
+    function refreshAllUI() {
+      const s = appState.settings;
+      const sum = calculateSummary();
+
+      // Update Identitas Satuan
+      document.getElementById('sidebar-nama-satuan').textContent = s.nama_satuan;
+      document.getElementById('sidebar-nama-kepsek').textContent = `Kepsek: ${s.nama_kepsek || '-'}`;
+      document.getElementById('dash-nama-satuan').textContent = s.nama_satuan;
+      document.getElementById('print-nama-satuan').textContent = `${s.nama_satuan} — TAHUN ANGGARAN ${s.tahun_anggaran}`;
+      document.getElementById('print-nama-kepsek').textContent = `Kepala Sekolah: ${s.nama_kepsek || '-'}`;
+      document.getElementById('print-ringkasan-pagu').textContent = `Pagu BOP: ${formatRp(sum.pagu)} | Total Rencana: ${formatRp(sum.totalAnggaran)} | Sisa Pagu: ${formatRp(sum.sisaPagu)}`;
+
+      // Update Kartu Summary
+      document.getElementById('stat-pagu-total').textContent = formatRp(sum.pagu);
+      document.getElementById('stat-total-anggaran').textContent = formatRp(sum.totalAnggaran);
+      document.getElementById('stat-persen-terserap').textContent = `${sum.persenTerserap.toFixed(1)}% dari pagu tersedia`;
+
+      // Update Keseimbangan Tahap 1 & Tahap 2
+      document.getElementById('nominal-tahap-1').textContent = formatRp(sum.totalTahap1);
+      document.getElementById('persen-tahap-1').textContent = `${sum.persenTahap1Pagu.toFixed(1)}%`;
+      document.getElementById('bar-tahap-1').style.width = `${Math.min(sum.persenTahap1Pagu * 2, 100)}%`;
+      document.getElementById('ket-tahap-1').textContent = `${sum.persenTahap1Pagu.toFixed(1)}% dari total pagu (Target ideal: 50%)`;
+
+      document.getElementById('nominal-tahap-2').textContent = formatRp(sum.totalTahap2);
+      document.getElementById('persen-tahap-2').textContent = `${sum.persenTahap2Pagu.toFixed(1)}%`;
+      document.getElementById('bar-tahap-2').style.width = `${Math.min(sum.persenTahap2Pagu * 2, 100)}%`;
+      document.getElementById('ket-tahap-2').textContent = `${sum.persenTahap2Pagu.toFixed(1)}% dari total pagu (Target ideal: 50%)`;
+
+      const split1 = sum.totalAnggaran > 0 ? (sum.totalTahap1 / sum.totalAnggaran) * 100 : 50;
+      const split2 = sum.totalAnggaran > 0 ? (sum.totalTahap2 / sum.totalAnggaran) * 100 : 50;
+      document.getElementById('split-pct-1').textContent = `${split1.toFixed(1)}%`;
+      document.getElementById('split-pct-2').textContent = `${split2.toFixed(1)}%`;
+      document.getElementById('split-bar-1').style.width = `${split1}%`;
+      document.getElementById('split-bar-2').style.width = `${split2}%`;
+      document.getElementById('badge-keseimbangan-tahap').textContent = `Rasio Tahap 1 vs Tahap 2: ${split1.toFixed(1)}% : ${split2.toFixed(1)}%`;
+
+      const elSisa = document.getElementById('stat-sisa-pagu');
+      const elStatusPagu = document.getElementById('stat-status-pagu');
+      const cardSisa = document.getElementById('card-sisa-pagu');
+      const iconSisa = document.getElementById('icon-sisa-pagu');
+      elSisa.textContent = formatRp(sum.sisaPagu);
+
+      if (sum.sisaPagu < 0) {
+        elSisa.className = 'text-2xl font-extrabold text-rose-600 mt-2';
+        elStatusPagu.textContent = 'PERINGATAN: Anggaran melebihi pagu!';
+        elStatusPagu.className = 'text-xs font-bold text-rose-600 mt-1';
+        cardSisa.className = 'glass-panel rounded-2xl p-5 border-l-4 border-l-rose-600 bg-gradient-to-br from-rose-50/80 to-white';
+        iconSisa.className = 'w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center shadow-sm';
+      } else if (sum.sisaPagu === 0 && sum.pagu > 0) {
+        elSisa.className = 'text-2xl font-extrabold text-emerald-700 mt-2';
+        elStatusPagu.textContent = 'Status: Pagu Teralokasi 100% Seimbang';
+        elStatusPagu.className = 'text-xs font-bold text-emerald-700 mt-1';
+        cardSisa.className = 'glass-panel rounded-2xl p-5 border-l-4 border-l-emerald-600 bg-gradient-to-br from-emerald-50/70 to-white';
+        iconSisa.className = 'w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm';
+      } else {
+        elSisa.className = 'text-2xl font-extrabold text-amber-800 mt-2';
+        elStatusPagu.textContent = 'Status: Sisa Pagu Tersedia';
+        elStatusPagu.className = 'text-xs font-medium text-amber-700 mt-1';
+        cardSisa.className = 'glass-panel rounded-2xl p-5 border-l-4 border-l-amber-500 bg-gradient-to-br from-amber-50/70 to-white';
+        iconSisa.className = 'w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-sm';
+      }
+
+      // Update Monitoring Persentase (Buku, Sarpras, Honor)
+      updateRuleCard(
+        'buku', sum.totalBuku, sum.persenBuku, s.min_persen_buku, sum.pagu, 'MIN'
+      );
+      updateRuleCard(
+        'sarpras', sum.totalSarpras, sum.persenSarpras, s.max_persen_sarpras, sum.pagu, 'MAX'
+      );
+      updateRuleCard(
+        'honor', sum.totalHonor, sum.persenHonor, s.max_persen_honor, sum.pagu, 'MAX'
+      );
+
+      // Render Peringatan (Alert Banner)
+      renderValidationAlerts(sum, s);
+
+      // Sinkronisasi Dropdown Filter & Modal Kategori
+      renderCategoryOptions();
+
+      // Render Tabel Matriks 12 Bulan
+      renderBudgetTable();
+
+      // Render Grafik jika tab grafik aktif
+      if (activeDashboardTab === 'grafik') {
+        renderOverviewCharts(sum);
+      }
+
+      // Sinkronisasi Tampilan Admin vs Publik
+      updateAdminUIState();
+
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // =========================================================================
+    // SWITCHER SUB-TAB DASHBOARD & RENDER GRAFIK PERSENTASE
+    // =========================================================================
+    window.switchDashboardTab = function(tabName) {
+      activeDashboardTab = tabName;
+      const btnTabel = document.getElementById('tab-btn-tabel');
+      const btnGrafik = document.getElementById('tab-btn-grafik');
+      const secTabel = document.getElementById('print-area');
+      const secGrafik = document.getElementById('dashboard-grafik-section');
+
+      if (tabName === 'grafik') {
+        btnGrafik.className = 'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-teal-600 text-white text-xs sm:text-sm font-bold shadow-sm transition-all';
+        btnTabel.className = 'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs sm:text-sm font-bold shadow-sm transition-all';
+        secGrafik.classList.remove('hidden');
+        secTabel.classList.add('hidden');
+        renderOverviewCharts(calculateSummary());
+      } else {
+        btnTabel.className = 'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-teal-600 text-white text-xs sm:text-sm font-bold shadow-sm transition-all';
+        btnGrafik.className = 'inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs sm:text-sm font-bold shadow-sm transition-all';
+        secTabel.classList.remove('hidden');
+        secGrafik.classList.add('hidden');
+      }
+      if (window.lucide) lucide.createIcons();
+    };
+
+    function renderOverviewCharts(sum) {
+      if (typeof Chart === 'undefined') return;
+
+      const palette = ['#0284c7', '#ea580c', '#9333ea', '#059669', '#e11d48', '#d97706', '#2563eb', '#0d9488'];
+      const catLabels = [];
+      const catValues = [];
+      const catColors = [];
+
+      appState.categories.forEach((cat, idx) => {
+        catLabels.push(cat.nama_kategori);
+        catValues.push(sum.categoryTotals[cat.id] || 0);
+        catColors.push(palette[idx % palette.length]);
+      });
+
+      // Render Legend Rincian Persentase per Kategori
+      const legendEl = document.getElementById('chart-kategori-legend');
+      const baseDenominator = sum.pagu > 0 ? sum.pagu : sum.totalAnggaran;
+      legendEl.innerHTML = appState.categories.map((cat, idx) => {
+        const nom = sum.categoryTotals[cat.id] || 0;
+        const pctPagu = baseDenominator > 0 ? ((nom / baseDenominator) * 100).toFixed(1) : '0.0';
+        return `
+          <div class="flex items-center justify-between text-xs p-2 rounded-xl bg-white border border-slate-200/80">
+            <div class="flex items-center gap-2 min-w-0">
+              <span class="w-3 h-3 rounded-full shrink-0" style="background:${catColors[idx]}"></span>
+              <span class="font-semibold text-slate-700 truncate">${escapeHtml(cat.nama_kategori)}</span>
+            </div>
+            <div class="text-right shrink-0 ml-2">
+              <span class="font-extrabold text-slate-900">${pctPagu}%</span>
+              <span class="block text-[10px] text-slate-400">${formatRp(nom)}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // 1. Donut Chart Kategori
+      const ctxDonut = document.getElementById('chart-kategori-donut').getContext('2d');
+      if (chartKategoriInstance) chartKategoriInstance.destroy();
+      chartKategoriInstance = new Chart(ctxDonut, {
+        type: 'doughnut',
+        data: {
+          labels: catLabels,
+          datasets: [{
+            data: catValues,
+            backgroundColor: catColors,
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '62%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const val = ctx.parsed || 0;
+                  const pct = baseDenominator > 0 ? ((val / baseDenominator) * 100).toFixed(1) : '0.0';
+                  return ` ${ctx.label}: ${formatRp(val)} (${pct}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+
+      // 2. Bar Chart 12 Bulan dengan Persentase (Warna-warni kontras tiap bulan & pembeda Tahap 1 vs Tahap 2)
+      const monthLabels = MONTHS.map(m => m.label);
+      const monthData = MONTHS.map(m => sum.monthlyTotals[m.key] || 0);
+      const monthColors = [
+        '#0891b2', '#0284c7', '#2563eb', '#0d9488', '#059669', '#16a34a', // Tahap 1 (Nuansa Biru - Toska - Hijau)
+        '#7c3aed', '#9333ea', '#c026d3', '#db2777', '#ea580c', '#d97706'  // Tahap 2 (Nuansa Ungu - Magenta - Oranye)
+      ];
+
+      const ctxBar = document.getElementById('chart-bulanan-bar').getContext('2d');
+      if (chartBulananInstance) chartBulananInstance.destroy();
+      chartBulananInstance = new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+          labels: monthLabels,
+          datasets: [{
+            label: 'Anggaran Bulanan (Rp)',
+            data: monthData,
+            backgroundColor: monthColors,
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const val = ctx.parsed.y || 0;
+                  const pct = baseDenominator > 0 ? ((val / baseDenominator) * 100).toFixed(1) : '0.0';
+                  return ` ${formatRp(val)} (${pct}% dari Pagu)`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: (val) => 'Rp ' + (val / 1000000).toFixed(1) + ' jt',
+                font: { size: 10 }
+              }
+            },
+            x: {
+              ticks: { font: { size: 11, weight: 'bold' } }
+            }
+          }
+        }
+      });
+    }
+
+    function updateRuleCard(key, nominal, persen, targetPersen, pagu, mode) {
+      document.getElementById(`lbl-${mode === 'MIN' ? 'min' : 'max'}-${key}`).textContent = targetPersen;
+      document.getElementById(`val-nominal-${key}`).textContent = formatRp(nominal);
+
+      const badge = document.getElementById(`val-persen-${key}`);
+      const bar = document.getElementById(`bar-persen-${key}`);
+      const ket = document.getElementById(`ket-persen-${key}`);
+
+      const defaultTheme = {
+        buku: { badge: 'bg-sky-100 text-sky-800', bar: 'bg-sky-600' },
+        sarpras: { badge: 'bg-orange-100 text-orange-800', bar: 'bg-orange-500' },
+        honor: { badge: 'bg-purple-100 text-purple-800', bar: 'bg-purple-600' }
+      }[key] || { badge: 'bg-emerald-100 text-emerald-700', bar: 'bg-emerald-500' };
+
+      badge.textContent = `${persen.toFixed(1)}%`;
+      const targetNominal = (targetPersen / 100) * pagu;
+      ket.textContent = mode === 'MIN'
+        ? `Minimal wajib (${targetPersen}%): ${formatRp(targetNominal)}`
+        : `Batas maksimal (${targetPersen}%): ${formatRp(targetNominal)}`;
+
+      const isViolated = mode === 'MIN'
+        ? (pagu > 0 && persen < targetPersen)
+        : (pagu > 0 && persen > targetPersen);
+
+      bar.style.width = `${Math.min(persen, 100)}%`;
+
+      if (isViolated) {
+        badge.className = 'px-2 py-0.5 rounded-md bg-rose-600 text-white font-extrabold';
+        bar.className = 'h-full bg-rose-600 transition-all duration-300';
+      } else {
+        badge.className = `px-2 py-0.5 rounded-md ${defaultTheme.badge} font-extrabold`;
+        bar.className = `h-full ${defaultTheme.bar} transition-all duration-300`;
+      }
+    }
+
+    function renderValidationAlerts(sum, s) {
+      const container = document.getElementById('validation-alerts-container');
+      const alerts = [];
+
+      if (sum.pagu > 0 && sum.totalAnggaran > sum.pagu) {
+        alerts.push(`Total rencana anggaran (${formatRp(sum.totalAnggaran)}) melebihi Pagu BOP (${formatRp(sum.pagu)}) sebesar ${formatRp(sum.totalAnggaran - sum.pagu)}.`);
+      }
+      if (sum.pagu > 0 && sum.persenBuku < s.min_persen_buku) {
+        alerts.push(`Anggaran Buku saat ini ${sum.persenBuku.toFixed(1)}% (${formatRp(sum.totalBuku)}), masih di bawah ketentuan minimal ${s.min_persen_buku}%.`);
+      }
+      if (sum.pagu > 0 && sum.persenSarpras > s.max_persen_sarpras) {
+        alerts.push(`Anggaran Sarana-Prasarana mencapai ${sum.persenSarpras.toFixed(1)}% (${formatRp(sum.totalSarpras)}), melebihi batas maksimal ${s.max_persen_sarpras}%.`);
+      }
+      if (sum.pagu > 0 && sum.persenHonor > s.max_persen_honor) {
+        alerts.push(`Anggaran Honor Guru & Tendik mencapai ${sum.persenHonor.toFixed(1)}% (${formatRp(sum.totalHonor)}), melebihi batas maksimal ${s.max_persen_honor}%.`);
+      }
+
+      if (alerts.length === 0) {
+        container.innerHTML = '';
+        return;
+      }
+
+      container.innerHTML = alerts.map(msg => `
+        <div class="flex items-start gap-3 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold shadow-sm">
+          <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-600 shrink-0 mt-0.5"></i>
+          <span>${msg}</span>
+        </div>
+      `).join('');
+    }
+
+    function renderCategoryOptions() {
+      const filterSelect = document.getElementById('filter-kategori');
+      const currentFilter = filterSelect.value;
+
+      filterSelect.innerHTML = `<option value="ALL">Semua Kategori (${appState.categories.length})</option>` +
+        appState.categories.map(c => `<option value="${c.id}">${escapeHtml(c.nama_kategori)}</option>`).join('');
+      if ([...filterSelect.options].some(o => o.value === currentFilter)) {
+        filterSelect.value = currentFilter;
+      }
+
+      const modalSelect = document.getElementById('item-kategori');
+      modalSelect.innerHTML = appState.categories.length
+        ? appState.categories.map(c => `<option value="${c.id}">${escapeHtml(c.nama_kategori)}</option>`).join('')
+        : `<option value="">-- Belum ada kategori (Tambah di Panel Admin) --</option>`;
+
+      // List kategori di Panel Admin
+      const adminCatList = document.getElementById('admin-category-list');
+      if (appState.categories.length === 0) {
+        adminCatList.innerHTML = `<p class="p-4 text-xs text-slate-400 text-center">Belum ada kategori anggaran.</p>`;
+      } else {
+        const ruleLabels = {
+          MIN_BUKU: 'Buku (Min %)',
+          MAX_SARPRAS: 'Sarpras (Maks %)',
+          MAX_HONOR: 'Honor (Maks %)',
+          BEBAS: 'Umum / Bebas'
+        };
+        adminCatList.innerHTML = appState.categories.map(c => `
+          <div class="flex items-center justify-between p-3 hover:bg-slate-50">
+            <div>
+              <p class="text-xs font-bold text-slate-800">${escapeHtml(c.nama_kategori)}</p>
+              <span class="inline-block mt-0.5 px-2 py-0.5 rounded bg-slate-100 text-[10px] font-semibold text-slate-600">
+                ${ruleLabels[c.jenis_aturan] || 'Umum'}
+              </span>
+            </div>
+            <button onclick="deleteCategory('${c.id}')" class="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50" title="Hapus Kategori">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        `).join('');
+      }
+    }
+
+    window.renderBudgetTable = function() {
+      const tbody = document.getElementById('budget-table-body');
+      const tfoot = document.getElementById('budget-table-foot');
+      const filterCat = document.getElementById('filter-kategori').value;
+      const keyword = document.getElementById('search-uraian').value.toLowerCase().trim();
+
+      const catMap = {};
+      const catRuleBadgeMap = {};
+      const ruleColorClasses = {
+        MIN_BUKU: 'bg-sky-100 text-sky-800 border border-sky-200',
+        MAX_SARPRAS: 'bg-orange-100 text-orange-800 border border-orange-200',
+        MAX_HONOR: 'bg-purple-100 text-purple-800 border border-purple-200',
+        BEBAS: 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+      };
+      appState.categories.forEach(c => {
+        catMap[c.id] = c.nama_kategori;
+        catRuleBadgeMap[c.id] = ruleColorClasses[c.jenis_aturan] || ruleColorClasses.BEBAS;
+      });
+
+      const filtered = appState.items.filter(item => {
+        const matchCat = filterCat === 'ALL' || item.kategori_id === filterCat;
+        const matchText = !keyword ||
+          (item.uraian_kegiatan || '').toLowerCase().includes(keyword) ||
+          (item.kode_rekening_arkas || '').toLowerCase().includes(keyword) ||
+          (catMap[item.kategori_id] || '').toLowerCase().includes(keyword);
+        return matchCat && matchText;
+      });
+
+      const thAksi = document.getElementById('th-aksi-admin');
+      if (appState.isAdmin) thAksi.classList.remove('hidden');
+      else thAksi.classList.add('hidden');
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="${appState.isAdmin ? 19 : 18}" class="p-8 text-center text-slate-400">
+              <p class="font-bold text-sm text-slate-600">Belum ada rincian anggaran yang ditampilkan</p>
+              <p class="text-xs mt-1">${appState.isAdmin ? 'Klik tombol "Tambah Rincian Anggaran" di atas untuk mulai menyusun RKAS 2027.' : 'Admin belum menginput rincian anggaran untuk filter ini.'}</p>
+            </td>
+          </tr>
+        `;
+        tfoot.innerHTML = '';
+        return;
+      }
+
+      const monthTotals = {};
+      MONTHS.forEach(m => { monthTotals[m.key] = 0; });
+      let grandTotal = 0;
+
+      tbody.innerHTML = filtered.map((item, idx) => {
+        const harga = Number(item.harga_satuan) || 0;
+        let totalVol = 0;
+        const monthCells = MONTHS.map(m => {
+          const v = Number(item.vol_bulan?.[m.key]) || 0;
+          const nom = v * harga;
+          totalVol += v;
+          monthTotals[m.key] += nom;
+          return `<td class="p-2.5 text-right whitespace-nowrap ${v > 0 ? 'text-slate-800 font-medium' : 'text-slate-300'}">
+            ${v > 0 ? `${formatNumber(nom)}<span class="block text-[9px] text-slate-400">(${v} ${escapeHtml(item.satuan)})</span>` : '-'}
+          </td>`;
+        }).join('');
+
+        const rowTotal = totalVol * harga;
+        grandTotal += rowTotal;
+
+        const adminCell = appState.isAdmin ? `
+          <td class="p-2.5 text-center whitespace-nowrap no-print">
+            <div class="inline-flex items-center gap-1">
+              <button onclick="openItemModal('${item.id}')" class="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100" title="Edit">
+                <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+              </button>
+              <button onclick="deleteBudgetItem('${item.id}')" class="p-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100" title="Hapus">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
+          </td>
+        ` : '';
+
+        return `
+          <tr class="hover:bg-slate-50/90 transition-colors">
+            <td class="p-3 text-center font-semibold text-slate-500 sticky left-0 bg-white z-10">${idx + 1}</td>
+            <td class="p-3 sticky left-10 bg-white z-10">
+              <span class="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold ${catRuleBadgeMap[item.kategori_id] || 'bg-teal-50 text-teal-700'}">
+                ${escapeHtml(catMap[item.kategori_id] || 'Umum')}
+              </span>
+              ${item.kode_rekening_arkas ? `<span class="ml-1 text-[10px] font-mono text-slate-400">[${escapeHtml(item.kode_rekening_arkas)}]</span>` : ''}
+              <p class="font-bold text-slate-800 mt-1">${escapeHtml(item.uraian_kegiatan)}</p>
+            </td>
+            <td class="p-3 text-center text-slate-600">${escapeHtml(item.satuan)}</td>
+            <td class="p-3 text-right font-medium text-slate-700 whitespace-nowrap">${formatNumber(harga)}</td>
+            <td class="p-3 text-center font-bold bg-slate-50 text-slate-800">${totalVol}</td>
+            <td class="p-3 text-right font-extrabold bg-teal-50/60 text-teal-800 whitespace-nowrap">${formatNumber(rowTotal)}</td>
+            ${monthCells}
+            ${adminCell}
+          </tr>
+        `;
+      }).join('');
+
+      tfoot.innerHTML = `
+        <tr>
+          <td colspan="5" class="p-3 text-right uppercase tracking-wider sticky left-0 bg-slate-100 z-10">Total Perencanaan (Rp)</td>
+          <td class="p-3 text-right text-teal-800 bg-teal-100/70 whitespace-nowrap">${formatNumber(grandTotal)}</td>
+          ${MONTHS.map(m => `<td class="p-2.5 text-right whitespace-nowrap">${formatNumber(monthTotals[m.key])}</td>`).join('')}
+          ${appState.isAdmin ? '<td class="no-print"></td>' : ''}
+        </tr>
+      `;
+
+      if (window.lucide) lucide.createIcons();
+    };
+
+    function updateAdminUIState() {
+      const btnTambah = document.getElementById('btn-tambah-anggaran');
+      const roleBadge = document.getElementById('header-role-badge');
+      const deskLabel = document.getElementById('nav-desk-admin-label');
+      const mobLabel = document.getElementById('nav-mob-admin-label');
+      const statusDot = document.getElementById('admin-status-dot');
+
+      const loginBox = document.getElementById('admin-login-box');
+      const controlPanel = document.getElementById('admin-control-panel');
+
+      if (appState.isAdmin) {
+        btnTambah.classList.remove('hidden');
+        roleBadge.textContent = 'Mode Administrator (Edit Aktif)';
+        roleBadge.className = 'px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-bold';
+        deskLabel.textContent = 'Panel Admin';
+        mobLabel.textContent = 'Panel Admin';
+        statusDot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-500';
+
+        loginBox.classList.add('hidden');
+        controlPanel.classList.remove('hidden');
+        document.getElementById('admin-logged-email').textContent = `Login aktif: ${appState.adminEmail}`;
+
+        // Isi form pengaturan dengan state terkini
+        document.getElementById('set-nama-satuan').value = appState.settings.nama_satuan;
+        document.getElementById('set-nama-kepsek').value = appState.settings.nama_kepsek || '';
+        document.getElementById('set-pagu-total').value = appState.settings.pagu_total;
+        document.getElementById('set-min-buku').value = appState.settings.min_persen_buku;
+        document.getElementById('set-max-sarpras').value = appState.settings.max_persen_sarpras;
+        document.getElementById('set-max-honor').value = appState.settings.max_persen_honor;
+      } else {
+        btnTambah.classList.add('hidden');
+        roleBadge.textContent = 'Mode Tampilan Publik';
+        roleBadge.className = 'px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-semibold';
+        deskLabel.textContent = 'Login Admin';
+        mobLabel.textContent = 'Login Admin';
+        statusDot.className = 'w-2.5 h-2.5 rounded-full bg-slate-300';
+
+        loginBox.classList.remove('hidden');
+        controlPanel.classList.add('hidden');
+      }
+    }
+
+    // =========================================================================
+    // AUTENTIKASI & DAFTAR AKUN SEKOLAH (PREVIEW VS FIREBASE AUTH/FIRESTORE)
+    // =========================================================================
+    window.switchAuthTab = function(tab) {
+      const tabLogin = document.getElementById('auth-tab-login');
+      const tabReg = document.getElementById('auth-tab-register');
+      const wrapLogin = document.getElementById('auth-form-login-wrapper');
+      const wrapReg = document.getElementById('auth-form-register-wrapper');
+
+      if (tab === 'register') {
+        tabReg.className = 'py-2 rounded-lg text-xs font-bold bg-white text-emerald-700 shadow-sm transition-all';
+        tabLogin.className = 'py-2 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-700 transition-all';
+        wrapReg.classList.remove('hidden');
+        wrapLogin.classList.add('hidden');
+      } else {
+        tabLogin.className = 'py-2 rounded-lg text-xs font-bold bg-white text-teal-700 shadow-sm transition-all';
+        tabReg.className = 'py-2 rounded-lg text-xs font-bold text-slate-500 hover:text-slate-700 transition-all';
+        wrapLogin.classList.remove('hidden');
+        wrapReg.classList.add('hidden');
+      }
+    };
+
+    // Helper: Normalisasi input user (jika pengguna mengetik username tanpa @, otomatis dikonversi ke format email Firebase Auth)
+    function normalizeAuthEmail(userInput) {
+      const clean = userInput.trim().toLowerCase();
+      if (clean.includes('@')) return clean;
+      return `${clean.replace(/[^a-z0-9._-]/g, '')}@boppaud.sch.id`;
+    }
+
+    window.handleAccountRegister = async function(e) {
+      e.preventDefault();
+      const namaSekolah = document.getElementById('reg-nama-sekolah').value.trim();
+      const namaKepsek = document.getElementById('reg-nama-kepsek').value.trim();
+      const rawUser = document.getElementById('reg-username').value.trim();
+      const password = document.getElementById('reg-password').value;
+
+      if (!namaSekolah || !namaKepsek || !rawUser || !password) return;
+
+      if (IS_PREVIEW) {
+        const exists = appState.accounts.some(a => a.username.toLowerCase() === rawUser.toLowerCase());
+        if (exists) {
+          showToast('Username / Email sudah terdaftar di simulasi!', 'error');
+          return;
+        }
+        appState.accounts.push({
+          nama_sekolah: namaSekolah,
+          nama_kepsek: namaKepsek,
+          username: rawUser,
+          password: password
+        });
+        appState.settings.nama_satuan = namaSekolah;
+        appState.settings.nama_kepsek = namaKepsek;
+        appState.isAdmin = true;
+        appState.adminEmail = `${rawUser} (${namaSekolah})`;
+
+        document.getElementById('reg-nama-sekolah').value = '';
+        document.getElementById('reg-nama-kepsek').value = '';
+        document.getElementById('reg-username').value = '';
+        document.getElementById('reg-password').value = '';
+
+        showToast(`Akun ${namaSekolah} berhasil didaftarkan!`, 'success');
+        refreshAllUI();
+        return;
+      }
+
+      // Mode Produksi: Daftarkan ke Firebase Auth & simpan profil sekolah ke Firestore
+      const authEmail = normalizeAuthEmail(rawUser);
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, authEmail, password);
+
+        // Simpan profil akun sekolah ke koleksi akun_sekolah
+        await setDoc(doc(db, 'akun_sekolah', cred.user.uid), {
+          uid: cred.user.uid,
+          nama_sekolah: namaSekolah,
+          nama_kepsek: namaKepsek,
+          username: rawUser,
+          auth_email: authEmail,
+          created_at: serverTimestamp()
+        });
+
+        // Otomatis perbarui nama sekolah & kepala sekolah pada pengaturan BOP
+        await setDoc(doc(db, 'pengaturan_bop', 'tahun_2027'), {
+          nama_satuan: namaSekolah,
+          nama_kepsek: namaKepsek,
+          tahun_anggaran: 2027,
+          updated_at: serverTimestamp()
+        }, { merge: true });
+
+        appState.isAdmin = true;
+        appState.adminEmail = `${rawUser} (${namaSekolah})`;
+        showToast(`Pendaftaran akun ${namaSekolah} berhasil!`, 'success');
+        refreshAllUI();
+      } catch (err) {
+        if (err.code === 'auth/email-already-in-use') {
+          showToast('Username / Email tersebut sudah terdaftar. Silakan langsung Masuk.', 'error');
+        } else {
+          showToast('Gagal mendaftar akun: ' + err.message, 'error');
+        }
+      }
+    };
+
+    window.handleAdminLogin = async function(e) {
+      e.preventDefault();
+      const rawUser = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+
+      if (IS_PREVIEW) {
+        const matched = appState.accounts.find(
+          a => a.username.toLowerCase() === rawUser.toLowerCase() && a.password === password
+        );
+        if (matched) {
+          appState.isAdmin = true;
+          appState.adminEmail = `${matched.username} (${matched.nama_sekolah})`;
+          appState.settings.nama_satuan = matched.nama_sekolah;
+          appState.settings.nama_kepsek = matched.nama_kepsek;
+          showToast(`Selamat datang, ${matched.nama_kepsek} (${matched.nama_sekolah})!`, 'success');
+          refreshAllUI();
+        } else {
+          showToast('User atau password salah! Cek info login demo atau daftar akun baru.', 'error');
+        }
+        return;
+      }
+
+      // Mode Produksi: Firebase Authentication murni
+      const authEmail = normalizeAuthEmail(rawUser);
+      try {
+        const cred = await signInWithEmailAndPassword(auth, authEmail, password);
+        appState.isAdmin = true;
+        appState.adminEmail = rawUser;
+
+        // Ambil profil sekolah jika tersedia
+        const snapAkun = await getDoc(doc(db, 'akun_sekolah', cred.user.uid));
+        if (snapAkun.exists()) {
+          const dataAkun = snapAkun.data();
+          appState.adminEmail = `${dataAkun.username} (${dataAkun.nama_sekolah})`;
+        }
+
+        showToast('Login berhasil!', 'success');
+        refreshAllUI();
+      } catch (err) {
+        showToast('Gagal login: Periksa kembali Username/Email & Password Anda.', 'error');
+      }
+    };
+
+    window.handleAdminLogout = async function() {
+      if (IS_PREVIEW) {
+        appState.isAdmin = false;
+        appState.adminEmail = '';
+        showToast('Anda telah keluar dari sesi Admin.', 'info');
+        refreshAllUI();
+        return;
+      }
+      await signOut(auth);
+      showToast('Berhasil logout dari sistem.', 'info');
+    };
+
+    // =========================================================================
+    // CRUD PENGATURAN MASTER, KATEGORI, & ITEM ANGGARAN
+    // =========================================================================
+    window.saveMasterSettings = async function(e) {
+      e.preventDefault();
+      if (!appState.isAdmin) return;
+
+      const updated = {
+        nama_satuan: document.getElementById('set-nama-satuan').value.trim(),
+        nama_kepsek: document.getElementById('set-nama-kepsek').value.trim(),
+        tahun_anggaran: 2027,
+        pagu_total: Number(document.getElementById('set-pagu-total').value) || 0,
+        min_persen_buku: Number(document.getElementById('set-min-buku').value) || 0,
+        max_persen_sarpras: Number(document.getElementById('set-max-sarpras').value) || 0,
+        max_persen_honor: Number(document.getElementById('set-max-honor').value) || 0
+      };
+
+      if (IS_PREVIEW) {
+        appState.settings = updated;
+        showToast('Pengaturan Pagu & Persentase berhasil diperbarui (Preview).', 'success');
+        refreshAllUI();
+        return;
+      }
+
+      try {
+        await setDoc(doc(db, 'pengaturan_bop', 'tahun_2027'), {
+          ...updated,
+          updated_at: serverTimestamp()
+        }, { merge: true });
+        showToast('Pengaturan berhasil disimpan ke database!', 'success');
+      } catch (err) {
+        showToast('Gagal menyimpan pengaturan: ' + err.message, 'error');
+      }
+    };
+
+    window.addCategory = async function(e) {
+      e.preventDefault();
+      if (!appState.isAdmin) return;
+
+      const name = document.getElementById('new-cat-name').value.trim();
+      const rule = document.getElementById('new-cat-rule').value;
+      if (!name) return;
+
+      const newCat = {
+        nama_kategori: name,
+        jenis_aturan: rule,
+        urutan: appState.categories.length + 1
+      };
+
+      if (IS_PREVIEW) {
+        appState.categories.push({ id: 'cat_' + Date.now(), ...newCat });
+        document.getElementById('new-cat-name').value = '';
+        showToast('Kategori baru ditambahkan.', 'success');
+        refreshAllUI();
+        return;
+      }
+
+      try {
+        await addDoc(collection(db, 'kategori_bop'), newCat);
+        document.getElementById('new-cat-name').value = '';
+        showToast('Kategori berhasil disimpan!', 'success');
+      } catch (err) {
+        showToast('Gagal menambah kategori: ' + err.message, 'error');
+      }
+    };
+
+    window.deleteCategory = async function(catId) {
+      if (!appState.isAdmin) return;
+
+      const isUsed = appState.items.some(i => i.kategori_id === catId);
+      if (isUsed) {
+        showToast('Kategori tidak bisa dihapus karena masih memiliki rincian anggaran!', 'error');
+        return;
+      }
+
+      if (IS_PREVIEW) {
+        appState.categories = appState.categories.filter(c => c.id !== catId);
+        showToast('Kategori dihapus.', 'info');
+        refreshAllUI();
+        return;
+      }
+
+      try {
+        await deleteDoc(doc(db, 'kategori_bop', catId));
+        showToast('Kategori berhasil dihapus.', 'info');
+      } catch (err) {
+        showToast('Gagal menghapus kategori: ' + err.message, 'error');
+      }
+    };
+
+    // =========================================================================
+    // MODAL INPUT / EDIT RINCIAN ANGGARAN 12 BULAN
+    // =========================================================================
+    function buildModalMonthInputs() {
+      const grid = document.getElementById('modal-months-grid');
+      grid.innerHTML = MONTHS.map(m => `
+        <div class="bg-white p-2 rounded-xl border border-slate-200">
+          <label class="block text-[11px] font-bold text-slate-600 mb-1">${m.label} 2027</label>
+          <input type="number" id="vol-${m.key}" min="0" value="0" oninput="recalcModalPreview()"
+            class="w-full px-2 py-1 rounded-lg border border-slate-200 text-xs font-bold text-center focus:outline-none focus:ring-2 focus:ring-teal-500" />
+        </div>
+      `).join('');
+    }
+
+    window.openItemModal = function(itemId = null) {
+      if (!appState.isAdmin) return;
+      if (appState.categories.length === 0) {
+        showToast('Tambahkan minimal 1 Kategori terlebih dahulu di Panel Admin.', 'error');
+        switchView('admin');
+        return;
+      }
+
+      document.getElementById('edit-item-id').value = itemId || '';
+      document.getElementById('modal-item-title').textContent = itemId
+        ? 'Edit Rincian Anggaran 2027'
+        : 'Tambah Rincian Anggaran 2027';
+
+      if (itemId) {
+        const item = appState.items.find(i => i.id === itemId);
+        if (item) {
+          document.getElementById('item-kategori').value = item.kategori_id;
+          document.getElementById('item-kode-arkas').value = item.kode_rekening_arkas || '';
+          document.getElementById('item-satuan').value = item.satuan;
+          document.getElementById('item-harga').value = item.harga_satuan;
+          document.getElementById('item-uraian').value = item.uraian_kegiatan;
+          MONTHS.forEach(m => {
+            document.getElementById(`vol-${m.key}`).value = item.vol_bulan?.[m.key] || 0;
+          });
+        }
+      } else {
+        document.getElementById('item-kode-arkas').value = '';
+        document.getElementById('item-satuan').value = '';
+        document.getElementById('item-harga').value = '';
+        document.getElementById('item-uraian').value = '';
+        MONTHS.forEach(m => { document.getElementById(`vol-${m.key}`).value = 0; });
+      }
+
+      recalcModalPreview();
+      document.getElementById('item-modal').classList.remove('hidden');
+    };
+
+    window.closeItemModal = function() {
+      document.getElementById('item-modal').classList.add('hidden');
+    };
+
+    window.fillAllMonths = function(val) {
+      MONTHS.forEach(m => { document.getElementById(`vol-${m.key}`).value = val; });
+      recalcModalPreview();
+    };
+
+    window.recalcModalPreview = function() {
+      const harga = Number(document.getElementById('item-harga').value) || 0;
+      let totalVol = 0;
+      MONTHS.forEach(m => {
+        totalVol += Number(document.getElementById(`vol-${m.key}`).value) || 0;
+      });
+      document.getElementById('modal-total-vol').textContent = totalVol;
+      document.getElementById('modal-total-rp').textContent = formatRp(totalVol * harga);
+    };
+
+    window.saveBudgetItem = async function(e) {
+      e.preventDefault();
+      if (!appState.isAdmin) return;
+
+      const editId = document.getElementById('edit-item-id').value;
+      const vol_bulan = {};
+      MONTHS.forEach(m => {
+        vol_bulan[m.key] = Number(document.getElementById(`vol-${m.key}`).value) || 0;
+      });
+
+      const payload = {
+        kategori_id: document.getElementById('item-kategori').value,
+        kode_rekening_arkas: document.getElementById('item-kode-arkas').value.trim(),
+        uraian_kegiatan: document.getElementById('item-uraian').value.trim(),
+        satuan: document.getElementById('item-satuan').value.trim(),
+        harga_satuan: Number(document.getElementById('item-harga').value) || 0,
+        vol_bulan
+      };
+
+      if (IS_PREVIEW) {
+        if (editId) {
+          const idx = appState.items.findIndex(i => i.id === editId);
+          if (idx > -1) appState.items[idx] = { id: editId, ...payload };
+        } else {
+          appState.items.push({ id: 'item_' + Date.now(), ...payload });
+        }
+        closeItemModal();
+        showToast('Rincian anggaran berhasil disimpan (Preview).', 'success');
+        refreshAllUI();
+        return;
+      }
+
+      try {
+        if (editId) {
+          await updateDoc(doc(db, 'item_anggaran_2027', editId), payload);
+        } else {
+          await addDoc(collection(db, 'item_anggaran_2027'), {
+            ...payload,
+            created_at: serverTimestamp()
+          });
+        }
+        closeItemModal();
+        showToast('Rincian anggaran berhasil disimpan ke database!', 'success');
+      } catch (err) {
+        showToast('Gagal menyimpan rincian: ' + err.message, 'error');
+      }
+    };
+
+    window.deleteBudgetItem = async function(itemId) {
+      if (!appState.isAdmin) return;
+
+      if (IS_PREVIEW) {
+        appState.items = appState.items.filter(i => i.id !== itemId);
+        showToast('Rincian anggaran dihapus.', 'info');
+        refreshAllUI();
+        return;
+      }
+
+      try {
+        await deleteDoc(doc(db, 'item_anggaran_2027', itemId));
+        showToast('Rincian anggaran berhasil dihapus.', 'info');
+      } catch (err) {
+        showToast('Gagal menghapus item: ' + err.message, 'error');
+      }
+    };
+
+    // =========================================================================
+    // EKSPOR EXCEL (.XLSX) & CETAK / SIMPAN PDF
+    // =========================================================================
+    window.exportToExcel = function() {
+      if (typeof XLSX === 'undefined') {
+        showToast('Library Excel sedang dimuat, coba sesaat lagi.', 'error');
+        return;
+      }
+
+      const catMap = {};
+      appState.categories.forEach(c => { catMap[c.id] = c.nama_kategori; });
+      const sum = calculateSummary();
+
+      const rows = [
+        ['PERENCANAAN ANGGARAN BOP PAUD TAHUN 2027 (SIAP INPUT ARKAS)'],
+        ['Satuan Pendidikan', appState.settings.nama_satuan],
+        ['Kepala Sekolah', appState.settings.nama_kepsek || '-'],
+        ['Pagu BOP 2027', sum.pagu],
+        ['Total Terencana', sum.totalAnggaran],
+        ['Sisa Pagu', sum.sisaPagu],
+        [],
+        [
+          'No', 'Kategori', 'Kode ARKAS', 'Uraian Kegiatan', 'Satuan', 'Harga Satuan',
+          'Total Vol', 'Total Anggaran (Rp)',
+          'Jan (Rp)', 'Feb (Rp)', 'Mar (Rp)', 'Apr (Rp)', 'Mei (Rp)', 'Jun (Rp)',
+          'Jul (Rp)', 'Agu (Rp)', 'Sep (Rp)', 'Okt (Rp)', 'Nov (Rp)', 'Des (Rp)'
+        ]
+      ];
+
+      appState.items.forEach((item, idx) => {
+        const harga = Number(item.harga_satuan) || 0;
+        let totalVol = 0;
+        const mNominals = MONTHS.map(m => {
+          const v = Number(item.vol_bulan?.[m.key]) || 0;
+          totalVol += v;
+          return v * harga;
+        });
+
+        rows.push([
+          idx + 1,
+          catMap[item.kategori_id] || 'Umum',
+          item.kode_rekening_arkas || '-',
+          item.uraian_kegiatan,
+          item.satuan,
+          harga,
+          totalVol,
+          totalVol * harga,
+          ...mNominals
+        ]);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'RKAS_BOP_2027');
+      const fileName = `Perencanaan_BOP_2027_${appState.settings.nama_satuan.replace(/\s+/g, '_')}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+      showToast('File Excel berhasil diunduh!', 'success');
+    };
+
+    window.printPDF = function() {
+      window.print();
+    };
+
+    // =========================================================================
+    // HELPER FORMATTER & TOAST NOTIFICATION (TANPA ALERT/CONFIRM)
+    // =========================================================================
+    function formatRp(num) {
+      return 'Rp ' + (Number(num) || 0).toLocaleString('id-ID');
+    }
+
+    function formatNumber(num) {
+      return (Number(num) || 0).toLocaleString('id-ID');
+    }
+
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const colors = {
+        success: 'bg-emerald-600 text-white',
+        error: 'bg-rose-600 text-white',
+        info: 'bg-slate-800 text-white'
+      };
+      const el = document.createElement('div');
+      el.className = `${colors[type] || colors.info} px-4 py-3 rounded-xl shadow-lg text-xs font-bold flex items-center justify-between gap-3 pointer-events-auto transition-all`;
+      el.innerHTML = `<span>${escapeHtml(message)}</span>`;
+      container.appendChild(el);
+      setTimeout(() => { el.remove(); }, 4000);
+    }
+
+    // Jalankan Aplikasi
+    initApp();
+  </script>
+</body>
+</html>
