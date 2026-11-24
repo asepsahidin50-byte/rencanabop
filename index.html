@@ -1030,7 +1030,6 @@
     const ADMIN_UTAMA_PASS = "admin2027";
 
     // PASTE FIREBASE CONFIG ANDA DI SINI
-    const firebaseConfig = {
 const firebaseConfig = {
   apiKey: "AIzaSyChpYhdPauvM6TDYdJsy9psFjEOHUxBGkw",
   authDomain: "bop2027-1c342.firebaseapp.com",
@@ -2063,90 +2062,10 @@ const firebaseConfig = {
       }
     };
 
-    window.handleAdminLogin = async function(e) {
-      e.preventDefault();
-      const inputUser = document.getElementById('login-email').value.trim();
-      const inputPass = document.getElementById('login-password').value;
-
-      // 1. Cek Login Admin Utama (Khusus Konfirmasi Pendaftaran & Ubah User/Password)
-      if (inputUser.toLowerCase() === ADMIN_UTAMA_USER.toLowerCase() && inputPass === ADMIN_UTAMA_PASS) {
-        appState.role = 'SUPER_ADMIN';
-        appState.currentAccount = null;
-
-        if (!IS_PREVIEW) {
-          if (!db) {
-            showToast('Koneksi database Firebase belum siap. Periksa firebaseConfig Anda.', 'error');
-            return;
-          }
-          attachFirestoreAccountsListener();
-        }
-        showAuthAnimationPopup('login', 'Berhasil Masuk Admin Utama', 'Akses konfirmasi & kelola akun aktif.');
-        refreshAllUI();
-        return;
-      }
-
-      // 2. Cek Login Akun Sekolah
-      if (IS_PREVIEW) {
-        const found = appState.accounts.find(a => a.username.toLowerCase() === inputUser.toLowerCase() && a.password === inputPass);
-        if (!found) {
-          showToast('Username atau Password salah.', 'error');
-          return;
-        }
-        if (found.status !== 'approved') {
-          showToast('Akun sekolah Anda masih MENUNGGU KONFIRMASI Admin.', 'error');
-          return;
-        }
-        appState.role = 'SCHOOL_USER';
-        appState.currentAccount = found;
-        loadPreviewSchoolScope(found.id);
-        showAuthAnimationPopup('login', 'Berhasil Masuk Akun!', `Selamat datang, ${found.nama_sekolah}`);
-        refreshAllUI();
-        return;
-      }
-
-      if (!db) {
-        showToast('Koneksi database Firebase belum siap. Periksa firebaseConfig Anda.', 'error');
-        return;
-      }
-
-      // Mode Produksi Firestore: Validasi terhadap koleksi akun_sekolah
-      try {
-        const qUser = query(collection(db, 'akun_sekolah'), where('username', '==', inputUser));
-        const snapUser = await getDocs(qUser);
-        if (snapUser.empty) {
-          showToast('Username tidak ditemukan.', 'error');
-          return;
-        }
-
-        const docSnap = snapUser.docs[0];
-        const accData = { id: docSnap.id, ...docSnap.data() };
-
-        if (accData.password !== inputPass) {
-          showToast('Password yang Anda masukkan salah.', 'error');
-          return;
-        }
-
-        if (accData.status !== 'approved') {
-          showToast('Akun sekolah Anda masih MENUNGGU KONFIRMASI Admin Utama.', 'error');
-          return;
-        }
-
-        appState.role = 'SCHOOL_USER';
-        appState.currentAccount = accData;
-        attachSchoolFirestoreListeners(accData);
-        showAuthAnimationPopup('login', 'Berhasil Masuk Akun!', `Database mandiri ${accData.nama_sekolah} siap digunakan.`);
-        refreshAllUI();
-      } catch (err) {
-        showToast('Gagal memverifikasi akun: ' + err.message, 'error');
-      }
-    };
-
     window.handleAdminLogout = function() {
       const modal = document.getElementById('logout-confirm-modal');
-      if (modal) {
-        modal.classList.remove('hidden');
-        if (window.lucide) window.lucide.createIcons();
-      }
+      if (modal) modal.classList.remove('hidden');
+      if (window.lucide) window.lucide.createIcons();
     };
 
     window.closeLogoutConfirmModal = function() {
@@ -2155,90 +2074,114 @@ const firebaseConfig = {
     };
 
     window.executeAdminLogout = function() {
-      closeLogoutConfirmModal();
-      const prevName = appState.currentAccount ? appState.currentAccount.nama_sekolah : 'Admin Utama';
-      appState.role = 'PUBLIC';
-      appState.currentAccount = null;
+      window.closeLogoutConfirmModal();
       detachSchoolListeners();
       if (unsubAccounts) { unsubAccounts(); unsubAccounts = null; }
-      showAuthAnimationPopup('logout', 'Berhasil Keluar Akun', `Sesi ${prevName} telah diakhiri.`);
+
+      appState.role = 'PUBLIC';
+      appState.currentAccount = null;
+
+      if (!IS_PREVIEW) {
+        appState.settings = { ...DEFAULT_SETTINGS };
+        appState.categories = [];
+        appState.items = [];
+      }
+
+      document.getElementById('login-email').value = '';
+      document.getElementById('login-password').value = '';
       refreshAllUI();
+      showAuthAnimationPopup('logout', 'Berhasil Keluar Akun', 'Anda telah keluar dari sesi aktif.');
     };
 
+    function showAuthAnimationPopup(type, title, subtitle) {
+      const popup = document.getElementById('auth-status-popup');
+      const iconWrap = document.getElementById('auth-popup-icon-wrap');
+      const iconEl = document.getElementById('auth-popup-icon');
+      const titleEl = document.getElementById('auth-popup-title');
+      const subEl = document.getElementById('auth-popup-subtitle');
+      if (!popup) return;
+
+      titleEl.textContent = title;
+      subEl.textContent = subtitle;
+
+      if (type === 'logout') {
+        iconWrap.className = 'w-16 h-16 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto shadow-inner';
+        iconEl.setAttribute('data-lucide', 'log-out');
+      } else {
+        iconWrap.className = 'w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner';
+        iconEl.setAttribute('data-lucide', 'check-circle-2');
+      }
+
+      popup.classList.remove('hidden');
+      if (window.lucide) window.lucide.createIcons();
+
+      setTimeout(() => {
+        popup.classList.add('hidden');
+      }, 1700);
+    }
+
     function updateAdminUIState() {
+      const isSuperAdmin = appState.role === 'SUPER_ADMIN';
+      const isSchoolUser = appState.role === 'SCHOOL_USER';
+      const isLoggedIn = isSuperAdmin || isSchoolUser;
+
       const loginBox = document.getElementById('admin-login-box');
       const controlPanel = document.getElementById('admin-control-panel');
       const superAdminSec = document.getElementById('superadmin-only-section');
       const schoolSec = document.getElementById('school-account-section');
       const btnTambah = document.getElementById('btn-tambah-anggaran');
       const roleBadge = document.getElementById('header-role-badge');
-      const dot = document.getElementById('admin-status-dot');
       const deskLabel = document.getElementById('nav-desk-admin-label');
       const mobLabel = document.getElementById('nav-mob-admin-label');
+      const statusDot = document.getElementById('admin-status-dot');
 
-      if (appState.role === 'SUPER_ADMIN') {
+      if (isLoggedIn) {
         loginBox.classList.add('hidden');
         controlPanel.classList.remove('hidden');
-        superAdminSec.classList.remove('hidden');
-        schoolSec.classList.add('hidden');
-        btnTambah.classList.add('hidden');
+        statusDot.className = 'w-2 h-2 rounded-full bg-emerald-500';
 
-        document.getElementById('panel-role-tag').textContent = 'Admin Utama (Konfirmasi & Tampilan)';
-        document.getElementById('panel-main-title').textContent = 'Konfirmasi Pendaftaran, Tampilan & Ubah User/Password';
-        document.getElementById('admin-logged-email').textContent = `Login Admin Utama: ${ADMIN_UTAMA_USER}`;
+        if (isSuperAdmin) {
+          superAdminSec.classList.remove('hidden');
+          schoolSec.classList.add('hidden');
+          btnTambah.classList.add('hidden');
 
-        roleBadge.textContent = 'Mode Admin Konfirmasi';
-        roleBadge.className = 'px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-800 text-xs font-bold';
-        dot.className = 'w-2 h-2 rounded-full bg-indigo-500 pointer-events-none';
-        deskLabel.textContent = 'Panel Admin Utama';
-        mobLabel.textContent = 'Admin Utama';
+          document.getElementById('panel-role-tag').textContent = 'Mode Admin Utama (Konfirmasi & Tampilan)';
+          document.getElementById('panel-main-title').textContent = 'Panel Admin Utama — Konfirmasi Pendaftaran & Tampilan';
+          document.getElementById('admin-logged-email').textContent = `Login Admin Utama: ${ADMIN_UTAMA_USER}`;
+          roleBadge.textContent = 'Mode Admin Konfirmasi';
+          roleBadge.className = 'px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-800 text-xs font-bold';
+          deskLabel.textContent = 'Panel Admin';
+          mobLabel.textContent = 'Admin';
 
-        renderSuperAdminAccountsTable();
-      } else if (appState.role === 'SCHOOL_USER' && appState.currentAccount) {
-        loginBox.classList.add('hidden');
-        controlPanel.classList.remove('hidden');
-        superAdminSec.classList.add('hidden');
-        schoolSec.classList.remove('hidden');
-        btnTambah.classList.remove('hidden');
+          renderSuperAdminAccountsTable();
+        } else if (isSchoolUser && appState.currentAccount) {
+          superAdminSec.classList.add('hidden');
+          schoolSec.classList.remove('hidden');
+          btnTambah.classList.remove('hidden');
 
-        document.getElementById('panel-role-tag').textContent = 'Akun Sekolah Terverifikasi';
-        document.getElementById('panel-main-title').textContent = `Database Mandiri: ${appState.currentAccount.nama_sekolah}`;
-        document.getElementById('admin-logged-email').textContent = `User Aktif: ${appState.currentAccount.username} | Kepsek: ${appState.currentAccount.nama_kepsek}`;
+          const acc = appState.currentAccount;
+          const s = appState.settings;
+          document.getElementById('panel-role-tag').textContent = 'Akun Sekolah Terverifikasi';
+          document.getElementById('panel-main-title').textContent = `Database BOP Mandiri — ${s.nama_satuan}`;
+          document.getElementById('admin-logged-email').textContent = `User Aktif: ${acc.username} | Kepsek: ${s.nama_kepsek || acc.nama_kepsek || '-'}`;
+          roleBadge.textContent = `Mode Edit: ${s.nama_satuan}`;
+          roleBadge.className = 'px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-bold';
+          deskLabel.textContent = 'Panel Sekolah';
+          mobLabel.textContent = 'Akun';
 
-        roleBadge.textContent = `Akun: ${appState.currentAccount.nama_sekolah}`;
-        roleBadge.className = 'px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-bold';
-        dot.className = 'w-2 h-2 rounded-full bg-emerald-500 pointer-events-none';
-        deskLabel.textContent = 'Panel Sekolah';
-        mobLabel.textContent = 'Panel Sekolah';
+          // Isi Form Pengaturan Sekolah
+          document.getElementById('set-nama-satuan').value = s.nama_satuan || '';
+          document.getElementById('set-nama-kepsek').value = s.nama_kepsek || '';
+          document.getElementById('set-pagu-total').value = s.pagu_total || 0;
+          document.getElementById('set-min-buku').value = s.min_persen_buku ?? 5;
+          document.getElementById('set-max-sarpras').value = s.max_persen_sarpras ?? 20;
+          document.getElementById('set-max-honor').value = s.max_persen_honor ?? 40;
 
-        // Isi Form Pengaturan Sekolah
-        document.getElementById('set-nama-satuan').value = appState.settings.nama_satuan;
-        document.getElementById('set-nama-kepsek').value = appState.settings.nama_kepsek || '';
-        document.getElementById('set-pagu-total').value = appState.settings.pagu_total;
-        document.getElementById('set-min-buku').value = appState.settings.min_persen_buku;
-        document.getElementById('set-max-sarpras').value = appState.settings.max_persen_sarpras;
-        document.getElementById('set-max-honor').value = appState.settings.max_persen_honor;
+          // Isi Form Ubah User & Password Sendiri
+          document.getElementById('self-new-username').value = acc.username || '';
+          document.getElementById('self-new-password').value = acc.password || '';
 
-        // Isi Form Ubah User/Password Sekolah Sendiri
-        document.getElementById('self-new-username').value = appState.currentAccount.username;
-        document.getElementById('self-new-password').value = appState.currentAccount.password;
-
-        // Render Daftar Kategori di Panel Sekolah
-        const catList = document.getElementById('admin-category-list');
-        if (appState.categories.length === 0) {
-          catList.innerHTML = '<div class="p-4 text-xs text-slate-400 text-center">Belum ada kategori anggaran.</div>';
-        } else {
-          catList.innerHTML = appState.categories.map(c => `
-            <div class="p-3 flex items-center justify-between gap-2 text-xs">
-              <div>
-                <p class="font-bold text-slate-800">${escapeHtml(c.nama_kategori)}</p>
-                <span class="text-[10px] text-slate-400">Aturan: ${c.jenis_aturan}</span>
-              </div>
-              <button type="button" onclick="deleteCategory('${c.id}')" class="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 cursor-pointer" title="Hapus Kategori">
-                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-              </button>
-            </div>
-          `).join('');
+          renderAdminCategoryList();
         }
       } else {
         loginBox.classList.remove('hidden');
@@ -2249,40 +2192,69 @@ const firebaseConfig = {
 
         roleBadge.textContent = 'Mode Tampilan Publik';
         roleBadge.className = 'px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-semibold';
-        dot.className = 'w-2 h-2 rounded-full bg-slate-300 pointer-events-none';
         deskLabel.textContent = 'Login Admin';
-        mobLabel.textContent = 'Login Admin';
+        mobLabel.textContent = 'Login';
+        statusDot.className = 'w-2 h-2 rounded-full bg-slate-300';
       }
     }
 
     // =========================================================================
-    // AKSI ADMIN UTAMA: KONFIRMASI AKUN & UBAH USER/PASSWORD SEKOLAH
+    // AKSI ADMIN UTAMA: EDIT NAMA APLIKASI, KONFIRMASI, UBAH USER/PASS, HAPUS
     // =========================================================================
+    window.saveAppBranding = async function(e) {
+      e.preventDefault();
+      if (appState.role !== 'SUPER_ADMIN') return;
+
+      const updated = {
+        logo_text: document.getElementById('ui-brand-logo').value.trim().toUpperCase() || 'BOP',
+        app_name: document.getElementById('ui-app-name').value.trim(),
+        badge_ta: document.getElementById('ui-badge-ta').value.trim(),
+        app_subtitle: document.getElementById('ui-app-subtitle').value.trim(),
+        header_prefix: document.getElementById('ui-header-prefix').value.trim(),
+        header_desc: document.getElementById('ui-header-desc').value.trim(),
+        footer_ta: document.getElementById('ui-footer-ta').value.trim()
+      };
+
+      if (IS_PREVIEW) {
+        appState.branding = { ...updated };
+        applyAppBrandingUI();
+        showToast('Tampilan & Nama Aplikasi berhasil diperbarui (Preview).', 'success');
+        return;
+      }
+
+      try {
+        await ensureFirebaseSession();
+        await setDoc(doc(db, 'pengaturan_global', 'tampilan_dashboard'), {
+          ...updated,
+          updated_at: serverTimestamp()
+        }, { merge: true });
+        showToast('Tampilan & Nama Aplikasi berhasil disimpan ke Firebase.', 'success');
+      } catch (err) {
+        showToast('Gagal menyimpan tampilan: ' + err.message, 'error');
+      }
+    };
+
     function renderSuperAdminAccountsTable() {
       const tbody = document.getElementById('superadmin-accounts-tbody');
-      const badge = document.getElementById('pending-count-badge');
-      if (!tbody || !badge) return;
+      const badgePending = document.getElementById('pending-count-badge');
+      if (!tbody) return;
 
       const pendingCount = appState.accounts.filter(a => a.status !== 'approved').length;
-      badge.textContent = `${pendingCount} Menunggu Konfirmasi`;
+      if (badgePending) badgePending.textContent = `${pendingCount} Menunggu Konfirmasi`;
 
       if (appState.accounts.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="5" class="p-6 text-center text-slate-400">Belum ada akun sekolah yang mendaftar.</td>
-          </tr>
-        `;
+        tbody.innerHTML = `<tr><td colspan="5" class="p-6 text-center text-slate-400">Belum ada akun sekolah yang mendaftar.</td></tr>`;
         return;
       }
 
       tbody.innerHTML = appState.accounts.map(acc => {
         const isApproved = acc.status === 'approved';
         const statusBadge = isApproved
-          ? `<span class="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[11px]">Aktif / Terkonfirmasi</span>`
-          : `<span class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-[11px]">Menunggu Konfirmasi</span>`;
+          ? `<span class="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-[11px] font-bold">Aktif / Terkonfirmasi</span>`
+          : `<span class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 text-[11px] font-bold">Menunggu Konfirmasi</span>`;
 
-        const confirmBtn = !isApproved
-          ? `<button type="button" onclick="confirmSchoolAccount('${acc.id}')" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] cursor-pointer">Konfirmasi</button>`
+        const btnConfirm = !isApproved
+          ? `<button type="button" onclick="approveSchoolAccount('${acc.id}')" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold cursor-pointer">Konfirmasi</button>`
           : '';
 
         return `
@@ -2294,13 +2266,13 @@ const firebaseConfig = {
             <td class="p-3 font-mono font-bold text-slate-800">${escapeHtml(acc.username)}</td>
             <td class="p-3 font-mono text-slate-600">${escapeHtml(acc.password)}</td>
             <td class="p-3 text-center">${statusBadge}</td>
-            <td class="p-3 text-center whitespace-nowrap">
-              <div class="inline-flex items-center gap-1.5">
-                ${confirmBtn}
-                <button type="button" onclick="openEditCredModal('${acc.id}')" class="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-bold text-[11px] cursor-pointer">
+            <td class="p-3 text-center">
+              <div class="inline-flex items-center justify-center gap-1.5 flex-wrap">
+                ${btnConfirm}
+                <button type="button" onclick="openEditCredModal('${acc.id}')" class="px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-[11px] font-bold cursor-pointer">
                   Ubah Data/User
                 </button>
-                <button type="button" onclick="openDeleteAccountModal('${acc.id}')" class="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-[11px] cursor-pointer" title="Hapus Pendaftar">
+                <button type="button" onclick="openDeleteAccountModal('${acc.id}')" class="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-[11px] font-bold cursor-pointer">
                   Hapus
                 </button>
               </div>
@@ -2310,59 +2282,26 @@ const firebaseConfig = {
       }).join('');
     }
 
-    window.saveAppBranding = async function(e) {
-      e.preventDefault();
-      if (appState.role !== 'SUPER_ADMIN') return;
-
-      const updatedBranding = {
-        logo_text: document.getElementById('ui-brand-logo').value.trim().toUpperCase() || 'BOP',
-        app_name: document.getElementById('ui-app-name').value.trim(),
-        badge_ta: document.getElementById('ui-badge-ta').value.trim(),
-        app_subtitle: document.getElementById('ui-app-subtitle').value.trim(),
-        header_prefix: document.getElementById('ui-header-prefix').value.trim(),
-        header_desc: document.getElementById('ui-header-desc').value.trim(),
-        footer_ta: document.getElementById('ui-footer-ta').value.trim()
-      };
-
-      if (IS_PREVIEW) {
-        appState.branding = updatedBranding;
-        applyAppBrandingUI();
-        showToast('Nama aplikasi & tampilan dashboard berhasil diperbarui!', 'success');
-        return;
-      }
-
-      if (!db) return;
-      try {
-        await setDoc(doc(db, 'pengaturan_global', 'tampilan_dashboard'), {
-          ...updatedBranding,
-          updated_at: serverTimestamp()
-        }, { merge: true });
-        showToast('Tampilan & nama aplikasi berhasil disimpan ke database!', 'success');
-      } catch (err) {
-        showToast('Gagal menyimpan tampilan dashboard: ' + err.message, 'error');
-      }
-    };
-
-    window.confirmSchoolAccount = async function(accountId) {
+    window.approveSchoolAccount = async function(accountId) {
       if (appState.role !== 'SUPER_ADMIN') return;
 
       if (IS_PREVIEW) {
-        const acc = appState.accounts.find(a => a.id === accountId);
-        if (acc) {
-          acc.status = 'approved';
-          loadPreviewSchoolScope(acc.id);
+        const idx = appState.accounts.findIndex(a => a.id === accountId);
+        if (idx !== -1) {
+          appState.accounts[idx].status = 'approved';
           renderSuperAdminAccountsTable();
-          showToast(`Akun ${acc.nama_sekolah} telah dikonfirmasi & siap digunakan!`, 'success');
+          showToast(`Akun ${appState.accounts[idx].nama_sekolah} telah dikonfirmasi!`, 'success');
         }
         return;
       }
 
       try {
+        await ensureFirebaseSession();
         await updateDoc(doc(db, 'akun_sekolah', accountId), {
           status: 'approved',
           approved_at: serverTimestamp()
         });
-        showToast('Akun sekolah berhasil dikonfirmasi!', 'success');
+        showToast('Akun sekolah berhasil dikonfirmasi dan aktif!', 'success');
       } catch (err) {
         showToast('Gagal mengonfirmasi akun: ' + err.message, 'error');
       }
@@ -2374,8 +2313,8 @@ const firebaseConfig = {
       document.getElementById('edit-cred-account-id').value = acc.id;
       document.getElementById('edit-cred-school-name').value = acc.nama_sekolah || '';
       document.getElementById('edit-cred-kepsek').value = acc.nama_kepsek || '';
-      document.getElementById('edit-cred-username').value = acc.username;
-      document.getElementById('edit-cred-password').value = acc.password;
+      document.getElementById('edit-cred-username').value = acc.username || '';
+      document.getElementById('edit-cred-password').value = acc.password || '';
       document.getElementById('edit-cred-modal').classList.remove('hidden');
       if (window.lucide) window.lucide.createIcons();
     };
@@ -2389,52 +2328,49 @@ const firebaseConfig = {
       if (appState.role !== 'SUPER_ADMIN') return;
 
       const accountId = document.getElementById('edit-cred-account-id').value;
-      const newSchoolName = document.getElementById('edit-cred-school-name').value.trim();
+      const newSchool = document.getElementById('edit-cred-school-name').value.trim();
       const newKepsek = document.getElementById('edit-cred-kepsek').value.trim();
-      const newUsername = document.getElementById('edit-cred-username').value.trim();
-      const newPassword = document.getElementById('edit-cred-password').value;
+      const newUser = document.getElementById('edit-cred-username').value.trim();
+      const newPass = document.getElementById('edit-cred-password').value;
 
-      if (!accountId || !newSchoolName || !newKepsek || !newUsername || !newPassword) return;
+      if (!newSchool || !newKepsek || !newUser || !newPass) return;
 
       if (IS_PREVIEW) {
-        const duplicate = appState.accounts.some(a => a.id !== accountId && a.username.toLowerCase() === newUsername.toLowerCase());
+        const duplicate = appState.accounts.some(a => a.id !== accountId && a.username.toLowerCase() === newUser.toLowerCase());
         if (duplicate) {
-          showToast('Username sudah dipakai sekolah lain.', 'error');
+          showToast('Username sudah dipakai akun lain.', 'error');
           return;
         }
-        const acc = appState.accounts.find(a => a.id === accountId);
-        if (acc) {
-          acc.nama_sekolah = newSchoolName;
-          acc.nama_kepsek = newKepsek;
-          acc.username = newUsername;
-          acc.password = newPassword;
-          if (appState.schoolDatabases[accountId]) {
-            appState.schoolDatabases[accountId].settings.nama_satuan = newSchoolName;
-            appState.schoolDatabases[accountId].settings.nama_kepsek = newKepsek;
-          }
+        const idx = appState.accounts.findIndex(a => a.id === accountId);
+        if (idx !== -1) {
+          appState.accounts[idx].nama_sekolah = newSchool;
+          appState.accounts[idx].nama_kepsek = newKepsek;
+          appState.accounts[idx].username = newUser;
+          appState.accounts[idx].password = newPass;
+        }
+        if (appState.schoolDatabases[accountId]) {
+          appState.schoolDatabases[accountId].settings.nama_satuan = newSchool;
+          appState.schoolDatabases[accountId].settings.nama_kepsek = newKepsek;
         }
         closeEditCredModal();
         renderSuperAdminAccountsTable();
-        showToast('Nama sekolah, user & password berhasil diubah!', 'success');
+        showToast('Data sekolah, username & password berhasil diperbarui.', 'success');
         return;
       }
 
       try {
+        await ensureFirebaseSession();
         await updateDoc(doc(db, 'akun_sekolah', accountId), {
-          nama_sekolah: newSchoolName,
+          nama_sekolah: newSchool,
           nama_kepsek: newKepsek,
-          username: newUsername,
-          password: newPassword,
+          username: newUser,
+          password: newPass,
           updated_at: serverTimestamp()
         });
-        await setDoc(doc(db, 'sekolah_bop', accountId, 'pengaturan', 'tahun_2027'), {
-          nama_satuan: newSchoolName,
-          nama_kepsek: newKepsek
-        }, { merge: true });
         closeEditCredModal();
-        showToast('Nama sekolah, user & password berhasil diperbarui!', 'success');
+        showToast('Data sekolah, username & password berhasil diperbarui.', 'success');
       } catch (err) {
-        showToast('Gagal memperbarui data akun: ' + err.message, 'error');
+        showToast('Gagal mengubah data akun: ' + err.message, 'error');
       }
     };
 
@@ -2442,7 +2378,7 @@ const firebaseConfig = {
       const acc = appState.accounts.find(a => a.id === accountId);
       if (!acc) return;
       document.getElementById('delete-account-id').value = acc.id;
-      document.getElementById('delete-account-desc').textContent = `Apakah Anda yakin ingin menghapus pendaftar "${acc.nama_sekolah}" (User: ${acc.username})?`;
+      document.getElementById('delete-account-desc').textContent = `Hapus akun "${acc.nama_sekolah}" (User: ${acc.username}) dari daftar pendaftar?`;
       document.getElementById('delete-account-modal').classList.remove('hidden');
       if (window.lucide) window.lucide.createIcons();
     };
@@ -2457,80 +2393,86 @@ const firebaseConfig = {
       if (!accountId) return;
 
       if (IS_PREVIEW) {
-        const idx = appState.accounts.findIndex(a => a.id === accountId);
-        if (idx !== -1) appState.accounts.splice(idx, 1);
+        appState.accounts = appState.accounts.filter(a => a.id !== accountId);
         delete appState.schoolDatabases[accountId];
         closeDeleteAccountModal();
         renderSuperAdminAccountsTable();
-        showToast('Pendaftar / akun sekolah berhasil dihapus.', 'info');
+        showToast('Pendaftar / akun sekolah berhasil dihapus.', 'success');
         return;
       }
 
       try {
+        await ensureFirebaseSession();
         await deleteDoc(doc(db, 'akun_sekolah', accountId));
         closeDeleteAccountModal();
-        showToast('Pendaftar / akun sekolah berhasil dihapus dari database.', 'info');
+        showToast('Pendaftar / akun sekolah berhasil dihapus.', 'success');
       } catch (err) {
         showToast('Gagal menghapus pendaftar: ' + err.message, 'error');
       }
     };
 
-    // Ubah Username & Password oleh Sekolah Sendiri (Tanpa merubah database BOP sekolah lain)
+    // =========================================================================
+    // AKSI AKUN SEKOLAH: UBAH USER/PASSWORD SENDIRI & KELOLA DATABASE MANDIRI
+    // =========================================================================
     window.handleSelfCredentialUpdate = async function(e) {
       e.preventDefault();
       if (appState.role !== 'SCHOOL_USER' || !appState.currentAccount) return;
 
-      const newUsername = document.getElementById('self-new-username').value.trim();
-      const newPassword = document.getElementById('self-new-password').value;
-      const accountId = appState.currentAccount.id;
+      const newUser = document.getElementById('self-new-username').value.trim();
+      const newPass = document.getElementById('self-new-password').value;
+      const accId = appState.currentAccount.id;
 
-      if (!newUsername || !newPassword) return;
+      if (!newUser || !newPass) return;
 
       if (IS_PREVIEW) {
-        const duplicate = appState.accounts.some(a => a.id !== accountId && a.username.toLowerCase() === newUsername.toLowerCase());
+        const duplicate = appState.accounts.some(a => a.id !== accId && a.username.toLowerCase() === newUser.toLowerCase());
         if (duplicate) {
-          showToast('Username sudah digunakan sekolah lain.', 'error');
+          showToast('Username sudah dipakai akun sekolah lain.', 'error');
           return;
         }
-        appState.currentAccount.username = newUsername;
-        appState.currentAccount.password = newPassword;
-        updateAdminUIState();
-        showToast('Username & Password akun Anda berhasil diubah!', 'success');
+        appState.currentAccount.username = newUser;
+        appState.currentAccount.password = newPass;
+        const idx = appState.accounts.findIndex(a => a.id === accId);
+        if (idx !== -1) {
+          appState.accounts[idx].username = newUser;
+          appState.accounts[idx].password = newPass;
+        }
+        refreshAllUI();
+        showToast('Username & Password akun Anda berhasil diperbarui.', 'success');
         return;
       }
 
       try {
-        const qCheck = query(collection(db, 'akun_sekolah'), where('username', '==', newUsername));
+        await ensureFirebaseSession();
+        const qCheck = query(collection(db, 'akun_sekolah'), where('username', '==', newUser));
         const snapCheck = await getDocs(qCheck);
-        const conflict = snapCheck.docs.some(d => d.id !== accountId);
+        const conflict = snapCheck.docs.some(d => d.id !== accId);
         if (conflict) {
-          showToast('Username sudah digunakan akun sekolah lain.', 'error');
+          showToast('Username sudah dipakai sekolah lain.', 'error');
           return;
         }
 
-        await updateDoc(doc(db, 'akun_sekolah', accountId), {
-          username: newUsername,
-          password: newPassword,
+        await updateDoc(doc(db, 'akun_sekolah', accId), {
+          username: newUser,
+          password: newPass,
           updated_at: serverTimestamp()
         });
-        appState.currentAccount.username = newUsername;
-        appState.currentAccount.password = newPassword;
-        updateAdminUIState();
-        showToast('Username & Password akun sekolah berhasil diperbarui!', 'success');
+        appState.currentAccount.username = newUser;
+        appState.currentAccount.password = newPass;
+        refreshAllUI();
+        showToast('Username & Password akun Anda berhasil disimpan.', 'success');
       } catch (err) {
-        showToast('Gagal mengubah user/password: ' + err.message, 'error');
+        showToast('Gagal memperbarui user/password: ' + err.message, 'error');
       }
     };
 
-    // =========================================================================
-    // CRUD PENGATURAN, KATEGORI & ITEM ANGGARAN (DATABASE MANDIRI SEKOLAH)
-    // =========================================================================
     window.saveMasterSettings = async function(e) {
       e.preventDefault();
       if (appState.role !== 'SCHOOL_USER' || !appState.currentAccount) return;
+      const schoolId = appState.currentAccount.id;
 
       const updated = {
-        nama_satuan: document.getElementById('set-nama-satuan').value.trim(),
+        nama_satuan: document.getElementById('set-nama-satuan').value.trim() || 'PAUD ARIFA',
         nama_kepsek: document.getElementById('set-nama-kepsek').value.trim(),
         tahun_anggaran: 2027,
         pagu_total: Number(document.getElementById('set-pagu-total').value) || 0,
@@ -2540,63 +2482,82 @@ const firebaseConfig = {
       };
 
       if (IS_PREVIEW) {
-        Object.assign(appState.settings, updated);
-        appState.currentAccount.nama_sekolah = updated.nama_satuan;
-        appState.currentAccount.nama_kepsek = updated.nama_kepsek;
+        appState.settings = { ...updated };
+        if (appState.schoolDatabases[schoolId]) {
+          appState.schoolDatabases[schoolId].settings = appState.settings;
+        }
         refreshAllUI();
-        showToast('Pengaturan pagu & persentase berhasil disimpan!', 'success');
+        showToast('Pengaturan Pagu & Persentase sekolah berhasil diperbarui.', 'success');
         return;
       }
 
       try {
-        const schoolId = appState.currentAccount.id;
+        await ensureFirebaseSession();
         await setDoc(doc(db, 'sekolah_bop', schoolId, 'pengaturan', 'tahun_2027'), {
           ...updated,
           updated_at: serverTimestamp()
         }, { merge: true });
-        await updateDoc(doc(db, 'akun_sekolah', schoolId), {
-          nama_sekolah: updated.nama_satuan,
-          nama_kepsek: updated.nama_kepsek
-        });
-        appState.currentAccount.nama_sekolah = updated.nama_satuan;
-        appState.currentAccount.nama_kepsek = updated.nama_kepsek;
-        showToast('Pengaturan berhasil disimpan ke database sekolah Anda!', 'success');
+        showToast('Pengaturan berhasil disimpan ke database sekolah Anda.', 'success');
       } catch (err) {
         showToast('Gagal menyimpan pengaturan: ' + err.message, 'error');
       }
     };
 
+    function renderAdminCategoryList() {
+      const container = document.getElementById('admin-category-list');
+      if (appState.categories.length === 0) {
+        container.innerHTML = `<p class="p-4 text-xs text-center text-slate-400">Belum ada kategori anggaran.</p>`;
+        return;
+      }
+
+      const ruleLabels = {
+        MIN_BUKU: 'Min. Buku (%)',
+        MAX_SARPRAS: 'Maks. Sarpras (%)',
+        MAX_HONOR: 'Maks. Honor (%)',
+        BEBAS: 'Umum / Bebas'
+      };
+
+      container.innerHTML = appState.categories.map(cat => `
+        <div class="p-3 flex items-center justify-between gap-2 hover:bg-slate-50">
+          <div>
+            <p class="text-xs font-bold text-slate-800">${escapeHtml(cat.nama_kategori)}</p>
+            <span class="text-[10px] font-semibold text-teal-700 bg-teal-50 px-2 py-0.5 rounded">${ruleLabels[cat.jenis_aturan] || 'Umum'}</span>
+          </div>
+          <button type="button" onclick="deleteCategory('${cat.id}')" class="p-1.5 rounded-lg text-rose-600 hover:bg-rose-50 cursor-pointer" title="Hapus Kategori">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      `).join('');
+    }
+
     window.addCategory = async function(e) {
       e.preventDefault();
       if (appState.role !== 'SCHOOL_USER' || !appState.currentAccount) return;
+      const schoolId = appState.currentAccount.id;
 
       const name = document.getElementById('new-cat-name').value.trim();
       const rule = document.getElementById('new-cat-rule').value;
       if (!name) return;
 
+      const newCat = {
+        nama_kategori: name,
+        jenis_aturan: rule,
+        urutan: appState.categories.length + 1
+      };
+
       if (IS_PREVIEW) {
-        appState.categories.push({
-          id: 'cat_' + Date.now(),
-          nama_kategori: name,
-          jenis_aturan: rule,
-          urutan: appState.categories.length + 1
-        });
+        appState.categories.push({ id: 'cat_' + Date.now(), ...newCat });
         document.getElementById('new-cat-name').value = '';
         refreshAllUI();
-        showToast('Kategori anggaran ditambahkan!', 'success');
+        showToast('Kategori baru ditambahkan.', 'success');
         return;
       }
 
       try {
-        const schoolId = appState.currentAccount.id;
-        await addDoc(collection(db, 'sekolah_bop', schoolId, 'kategori'), {
-          nama_kategori: name,
-          jenis_aturan: rule,
-          urutan: appState.categories.length + 1,
-          created_at: serverTimestamp()
-        });
+        await ensureFirebaseSession();
+        await addDoc(collection(db, 'sekolah_bop', schoolId, 'kategori'), newCat);
         document.getElementById('new-cat-name').value = '';
-        showToast('Kategori baru berhasil ditambahkan!', 'success');
+        showToast('Kategori berhasil disimpan ke database sekolah Anda.', 'success');
       } catch (err) {
         showToast('Gagal menambah kategori: ' + err.message, 'error');
       }
@@ -2604,80 +2565,44 @@ const firebaseConfig = {
 
     window.deleteCategory = async function(catId) {
       if (appState.role !== 'SCHOOL_USER' || !appState.currentAccount) return;
-      const used = appState.items.some(i => i.kategori_id === catId);
-      if (used) {
-        showToast('Kategori tidak bisa dihapus karena masih digunakan pada rincian anggaran.', 'error');
-        return;
-      }
+      const schoolId = appState.currentAccount.id;
 
       if (IS_PREVIEW) {
-        const idx = appState.categories.findIndex(c => c.id === catId);
-        if (idx !== -1) appState.categories.splice(idx, 1);
+        appState.categories = appState.categories.filter(c => c.id !== catId);
+        if (appState.schoolDatabases[schoolId]) {
+          appState.schoolDatabases[schoolId].categories = appState.categories;
+        }
         refreshAllUI();
-        showToast('Kategori dihapus.', 'info');
+        showToast('Kategori dihapus.', 'success');
         return;
       }
 
       try {
-        const schoolId = appState.currentAccount.id;
+        await ensureFirebaseSession();
         await deleteDoc(doc(db, 'sekolah_bop', schoolId, 'kategori', catId));
-        showToast('Kategori berhasil dihapus.', 'info');
+        showToast('Kategori berhasil dihapus.', 'success');
       } catch (err) {
         showToast('Gagal menghapus kategori: ' + err.message, 'error');
       }
     };
 
-    // Modal Tambah/Edit Item Anggaran
+    // =========================================================================
+    // MODAL & CRUD ITEM ANGGARAN 12 BULAN (MANDIRI PER SEKOLAH)
+    // =========================================================================
     function buildModalMonthInputs() {
       const grid = document.getElementById('modal-months-grid');
       grid.innerHTML = MONTHS.map(m => `
-        <div class="p-2 rounded-xl bg-white border border-slate-200">
-          <label class="block text-[11px] font-bold text-slate-600 mb-1">${m.label}</label>
-          <input type="number" id="vol-${m.key}" min="0" value="0" oninput="recalcModalPreview()" class="w-full px-2 py-1 rounded-lg border border-slate-200 text-xs font-bold text-center focus:outline-none focus:ring-2 focus:ring-teal-500" />
+        <div class="bg-white p-2 rounded-xl border border-slate-200">
+          <label class="block text-[10px] font-bold uppercase text-slate-500 text-center mb-1">${m.label}</label>
+          <input type="number" id="vol-${m.key}" min="0" value="0" oninput="recalcModalPreview()" class="w-full text-center text-xs font-bold text-slate-800 focus:outline-none focus:text-teal-700" />
         </div>
       `).join('');
     }
 
-    window.openItemModal = function(itemId = null) {
-      if (appState.role !== 'SCHOOL_USER' || !appState.currentAccount) return;
-      if (appState.categories.length === 0) {
-        showToast('Tambahkan kategori anggaran terlebih dahulu di Panel Sekolah.', 'error');
-        return;
-      }
-
-      document.getElementById('edit-item-id').value = itemId || '';
-      document.getElementById('modal-item-title').textContent = itemId ? 'Edit Rincian Anggaran 2027' : 'Tambah Rincian Anggaran 2027';
-
-      if (itemId) {
-        const item = appState.items.find(i => i.id === itemId);
-        if (!item) return;
-        document.getElementById('item-kategori').value = item.kategori_id;
-        document.getElementById('item-kode-arkas').value = item.kode_rekening_arkas || '';
-        document.getElementById('item-satuan').value = item.satuan;
-        document.getElementById('item-harga').value = item.harga_satuan;
-        document.getElementById('item-uraian').value = item.uraian_kegiatan;
-        MONTHS.forEach(m => {
-          document.getElementById(`vol-${m.key}`).value = (item.vol_bulan && item.vol_bulan[m.key]) || 0;
-        });
-      } else {
-        document.getElementById('item-kode-arkas').value = '';
-        document.getElementById('item-satuan').value = 'Bulan';
-        document.getElementById('item-harga').value = '';
-        document.getElementById('item-uraian').value = '';
-        MONTHS.forEach(m => { document.getElementById(`vol-${m.key}`).value = 0; });
-      }
-
-      recalcModalPreview();
-      document.getElementById('item-modal').classList.remove('hidden');
-      if (window.lucide) window.lucide.createIcons();
-    };
-
-    window.closeItemModal = function() {
-      document.getElementById('item-modal').classList.add('hidden');
-    };
-
     window.fillAllMonths = function(val) {
-      MONTHS.forEach(m => { document.getElementById(`vol-${m.key}`).value = val; });
+      MONTHS.forEach(m => {
+        document.getElementById(`vol-${m.key}`).value = val;
+      });
       recalcModalPreview();
     };
 
@@ -2691,14 +2616,55 @@ const firebaseConfig = {
       document.getElementById('modal-total-rp').textContent = formatRp(totalVol * harga);
     };
 
+    window.openItemModal = function(itemId = null) {
+      if (appState.role !== 'SCHOOL_USER') return;
+      if (appState.categories.length === 0) {
+        showToast('Buat kategori anggaran terlebih dahulu di menu Panel Sekolah.', 'error');
+        return;
+      }
+
+      const modal = document.getElementById('item-modal');
+      document.getElementById('edit-item-id').value = itemId || '';
+
+      if (itemId) {
+        const item = appState.items.find(i => i.id === itemId);
+        if (!item) return;
+        document.getElementById('modal-item-title').textContent = 'Edit Rincian Anggaran 2027';
+        document.getElementById('item-kategori').value = item.kategori_id;
+        document.getElementById('item-kode-arkas').value = item.kode_rekening_arkas || '';
+        document.getElementById('item-satuan').value = item.satuan || '';
+        document.getElementById('item-harga').value = item.harga_satuan || 0;
+        document.getElementById('item-uraian').value = item.uraian_kegiatan || '';
+        MONTHS.forEach(m => {
+          document.getElementById(`vol-${m.key}`).value = (item.vol_bulan && item.vol_bulan[m.key]) || 0;
+        });
+      } else {
+        document.getElementById('modal-item-title').textContent = 'Tambah Rincian Anggaran 2027';
+        document.getElementById('item-kode-arkas').value = '';
+        document.getElementById('item-satuan').value = '';
+        document.getElementById('item-harga').value = '';
+        document.getElementById('item-uraian').value = '';
+        fillAllMonths(0);
+      }
+
+      recalcModalPreview();
+      modal.classList.remove('hidden');
+      if (window.lucide) window.lucide.createIcons();
+    };
+
+    window.closeItemModal = function() {
+      document.getElementById('item-modal').classList.add('hidden');
+    };
+
     window.saveBudgetItem = async function(e) {
       e.preventDefault();
       if (appState.role !== 'SCHOOL_USER' || !appState.currentAccount) return;
+      const schoolId = appState.currentAccount.id;
 
       const editId = document.getElementById('edit-item-id').value;
-      const vol_bulan = {};
+      const volBulan = {};
       MONTHS.forEach(m => {
-        vol_bulan[m.key] = Number(document.getElementById(`vol-${m.key}`).value) || 0;
+        volBulan[m.key] = Number(document.getElementById(`vol-${m.key}`).value) || 0;
       });
 
       const payload = {
@@ -2707,29 +2673,26 @@ const firebaseConfig = {
         uraian_kegiatan: document.getElementById('item-uraian').value.trim(),
         satuan: document.getElementById('item-satuan').value.trim(),
         harga_satuan: Number(document.getElementById('item-harga').value) || 0,
-        vol_bulan
+        vol_bulan: volBulan
       };
 
       if (IS_PREVIEW) {
         if (editId) {
           const idx = appState.items.findIndex(i => i.id === editId);
-          if (idx !== -1) appState.items[idx] = { ...appState.items[idx], ...payload };
+          if (idx !== -1) appState.items[idx] = { id: editId, ...payload };
         } else {
           appState.items.push({ id: 'item_' + Date.now(), ...payload });
         }
         closeItemModal();
         refreshAllUI();
-        showToast('Rincian anggaran berhasil disimpan!', 'success');
+        showToast('Rincian anggaran berhasil disimpan.', 'success');
         return;
       }
 
       try {
-        const schoolId = appState.currentAccount.id;
+        await ensureFirebaseSession();
         if (editId) {
-          await updateDoc(doc(db, 'sekolah_bop', schoolId, 'item_anggaran', editId), {
-            ...payload,
-            updated_at: serverTimestamp()
-          });
+          await updateDoc(doc(db, 'sekolah_bop', schoolId, 'item_anggaran', editId), payload);
         } else {
           await addDoc(collection(db, 'sekolah_bop', schoolId, 'item_anggaran'), {
             ...payload,
@@ -2737,66 +2700,74 @@ const firebaseConfig = {
           });
         }
         closeItemModal();
-        showToast('Rincian anggaran tersimpan di database sekolah Anda!', 'success');
+        showToast('Rincian anggaran tersimpan ke database sekolah Anda.', 'success');
       } catch (err) {
-        showToast('Gagal menyimpan rincian: ' + err.message, 'error');
+        showToast('Gagal menyimpan item: ' + err.message, 'error');
       }
     };
 
     window.deleteBudgetItem = async function(itemId) {
       if (appState.role !== 'SCHOOL_USER' || !appState.currentAccount) return;
+      const schoolId = appState.currentAccount.id;
 
       if (IS_PREVIEW) {
-        const idx = appState.items.findIndex(i => i.id === itemId);
-        if (idx !== -1) appState.items.splice(idx, 1);
+        appState.items = appState.items.filter(i => i.id !== itemId);
+        if (appState.schoolDatabases[schoolId]) {
+          appState.schoolDatabases[schoolId].items = appState.items;
+        }
         refreshAllUI();
-        showToast('Rincian anggaran dihapus.', 'info');
+        showToast('Item anggaran dihapus.', 'success');
         return;
       }
 
       try {
-        const schoolId = appState.currentAccount.id;
+        await ensureFirebaseSession();
         await deleteDoc(doc(db, 'sekolah_bop', schoolId, 'item_anggaran', itemId));
-        showToast('Rincian anggaran dihapus.', 'info');
+        showToast('Item anggaran berhasil dihapus.', 'success');
       } catch (err) {
         showToast('Gagal menghapus item: ' + err.message, 'error');
       }
     };
 
     // =========================================================================
-    // EKSPOR EXCEL (.XLSX) & CETAK / SIMPAN PDF
+    // EKSPOR EXCEL (.XLSX) & CETAK PDF
     // =========================================================================
     window.exportToExcel = function() {
       if (typeof XLSX === 'undefined') {
-        showToast('Library Excel belum siap, periksa koneksi internet.', 'error');
+        showToast('Library Excel sedang dimuat, silakan coba sebentar lagi.', 'error');
         return;
       }
 
       const sum = calculateSummary();
+      const s = appState.settings;
       const catMap = {};
       appState.categories.forEach(c => { catMap[c.id] = c.nama_kategori; });
 
       const rows = [
-        [`PERENCANAAN BOP PAUD TAHUN ANGGARAN ${appState.settings.tahun_anggaran}`],
-        [`Satuan Pendidikan: ${appState.settings.nama_satuan}`],
-        [`Kepala Sekolah: ${appState.settings.nama_kepsek || '-'}`],
-        [`Pagu BOP: ${sum.pagu}`, `Total Rencana: ${sum.totalAll}`, `Sisa Pagu: ${sum.sisaPagu}`],
+        ['RENCANA KEGIATAN DAN ANGGARAN SATUAN (RKAS) BOP PAUD 2027'],
+        ['Satuan Pendidikan', s.nama_satuan],
+        ['Kepala Sekolah', s.nama_kepsek || '-'],
+        ['Pagu BOP 2027', sum.pagu],
+        ['Total Anggaran Terencana', sum.totalAll],
+        ['Sisa Pagu', sum.sisaPagu],
+        ['Tahap 1 (Jan-Jun)', sum.totalTahap1, `${sum.pctTahap1Pagu.toFixed(1)}% dari Pagu`],
+        ['Tahap 2 (Jul-Des)', sum.totalTahap2, `${sum.pctTahap2Pagu.toFixed(1)}% dari Pagu`],
         [],
-        [
-          'No', 'Kategori Anggaran', 'Kode ARKAS', 'Uraian Kegiatan', 'Satuan', 'Harga Satuan',
-          'Total Vol', 'Total Anggaran 1 Tahun',
-          'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
-        ]
+        ['No', 'Kategori', 'Kode ARKAS', 'Uraian Kegiatan', 'Satuan', 'Harga Satuan', 'Total Vol', 'Total 1 Tahun',
+         'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
       ];
 
       appState.items.forEach((item, idx) => {
         const harga = Number(item.harga_satuan) || 0;
         const vb = item.vol_bulan || {};
-        let tVol = 0;
-        const mNoms = MONTHS.map(m => {
+        let rowVol = 0;
+        let rowTotal = 0;
+        const monthVals = MONTHS.map(m => {
           const v = Number(vb[m.key]) || 0;
-          tVol += v;
-          return v * harga;
+          const nom = v * harga;
+          rowVol += v;
+          rowTotal += nom;
+          return nom;
         });
 
         rows.push([
@@ -2806,26 +2777,29 @@ const firebaseConfig = {
           item.uraian_kegiatan,
           item.satuan,
           harga,
-          tVol,
-          tVol * harga,
-          ...mNoms
+          rowVol,
+          rowTotal,
+          ...monthVals
         ]);
       });
 
       const ws = XLSX.utils.aoa_to_sheet(rows);
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'RKAS_BOP_2027');
-      const safeName = (appState.settings.nama_satuan || 'PAUD').replace(/[^a-zA-Z0-9]/g, '_');
+      XLSX.utils.book_append_sheet(wb, ws, 'RKAS BOP 2027');
+      const safeName = (s.nama_satuan || 'PAUD').replace(/[^a-zA-Z0-9]/g, '_');
       XLSX.writeFile(wb, `Perencanaan_BOP_2027_${safeName}.xlsx`);
       showToast('File Excel berhasil diunduh!', 'success');
     };
 
     window.printPDF = function() {
+      if (activeDashboardTab !== 'tabel') {
+        window.switchDashboardTab('tabel');
+      }
       window.print();
     };
 
     // =========================================================================
-    // HELPER FORMATTER & TOAST MESSAGE (TANPA ALERT)
+    // HELPER FORMAT & NOTIFIKASI TOAST
     // =========================================================================
     function formatRp(num) {
       return 'Rp ' + Math.round(Number(num) || 0).toLocaleString('id-ID');
@@ -2843,50 +2817,17 @@ const firebaseConfig = {
         .replace(/"/g, '&quot;');
     }
 
-    function showToast(message, type = 'info') {
+    function showToast(message, type = 'success') {
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
-      const colors = {
-        success: 'bg-emerald-600 text-white',
-        error: 'bg-rose-600 text-white',
-        info: 'bg-slate-800 text-white'
-      };
-      toast.className = `${colors[type] || colors.info} px-4 py-3 rounded-2xl shadow-xl text-xs font-bold flex items-center justify-between gap-3 pointer-events-auto transition-all`;
+      const bg = type === 'error' ? 'bg-rose-600' : 'bg-slate-900';
+      toast.className = `${bg} text-white px-4 py-3 rounded-2xl shadow-xl text-xs font-semibold flex items-center justify-between gap-3 pointer-events-auto transition-all`;
       toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
       container.appendChild(toast);
       setTimeout(() => {
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 300);
-      }, 3800);
-    }
-
-    let authPopupTimer = null;
-    function showAuthAnimationPopup(mode, title, subtitle) {
-      const overlay = document.getElementById('auth-status-popup');
-      const iconWrap = document.getElementById('auth-popup-icon-wrap');
-      const iconEl = document.getElementById('auth-popup-icon');
-      const titleEl = document.getElementById('auth-popup-title');
-      const subEl = document.getElementById('auth-popup-subtitle');
-      if (!overlay) return;
-
-      if (mode === 'logout') {
-        iconWrap.className = 'w-16 h-16 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto shadow-inner';
-        iconEl.setAttribute('data-lucide', 'log-out');
-      } else {
-        iconWrap.className = 'w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner';
-        iconEl.setAttribute('data-lucide', 'check-circle-2');
-      }
-
-      titleEl.textContent = title;
-      subEl.textContent = subtitle;
-
-      overlay.classList.remove('hidden');
-      if (window.lucide) window.lucide.createIcons();
-
-      if (authPopupTimer) clearTimeout(authPopupTimer);
-      authPopupTimer = setTimeout(() => {
-        overlay.classList.add('hidden');
-      }, 1700);
+      }, 3500);
     }
 
     // Jalankan Aplikasi
